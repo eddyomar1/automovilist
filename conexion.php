@@ -1,15 +1,6 @@
-<?php
-	$database="crud";
-	$user='root';
-	$password='';
-
-
-try {
-	
-	$con=new PDO('mysql:host=localhost;dbname='.$database,$user,$password);
-
-} catch (PDOException $e) {
-	echo "Error".$e->getMessage();
-}
-
-?>
+$con = new mysqli(
+    "localhost",
+    "u138076177_chacharito",
+    "3spWifiPruev@",
+    "u138076177_pw"
+);

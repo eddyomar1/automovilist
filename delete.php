@@ -1,14 +1,14 @@
-<?php 
+<?php
+require_once 'conexion.php';
 
-	include_once 'conexion.php';
-	if(isset($_GET['id'])){
-		$id=(int) $_GET['id'];
-		$delete=$con->prepare('DELETE FROM clientes WHERE id=:id');
-		$delete->execute(array(
-			':id'=>$id
-		));
-		header('Location: index.php');
-	}else{
-		header('Location: index.php');
-	}
- ?>
+if (!isset($_GET['id']) || !ctype_digit($_GET['id'])) {
+    header('Location: index.php'); exit;
+}
+$id = (int)$_GET['id'];
+
+$stmt = $con->prepare("DELETE FROM clientes WHERE id = ?");
+$stmt->bind_param('i', $id);
+$stmt->execute();
+
+header('Location: index.php');
+exit;
