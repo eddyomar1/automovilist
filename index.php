@@ -37,7 +37,7 @@ if ($res) {
 </head>
 <body>
 <div class="contenedor">
-  <h2>CRUD EN PHP CON MYSQL</h2>
+  <h2>Registro de vehiculos</h2>
 
   <div class="barra__buscador">
     <form action="" class="formulario" method="post">
