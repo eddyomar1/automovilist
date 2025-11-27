@@ -8,18 +8,17 @@ $resultado   = [];
 
 // Consulta
 if (isset($_POST['btn_buscar']) && $buscar_text !== '') {
-    $sql = "SELECT id, nombre, apellidos, telefono, ciudad, correo
-            FROM clientes
-            WHERE (nombre LIKE ? OR apellidos LIKE ? OR telefono LIKE ? OR ciudad LIKE ? OR correo LIKE ?)
-            ORDER BY id DESC";
+        $sql = "SELECT id, nombre, apellidos, telefono, ciudad, correo, placa, modelo, color, telefono_contacto, notas_incidente, foto_placa
+          FROM clientes
+          WHERE (nombre LIKE ? OR apellidos LIKE ? OR telefono LIKE ? OR ciudad LIKE ? OR correo LIKE ? OR placa LIKE ?)
+          ORDER BY id DESC";
     $stmt = $con->prepare($sql);
-    $like = "%{$buscar_text}%";
-    $stmt->bind_param('sssss', $like, $like, $like, $like, $like);
+        $like = "%{$buscar_text}%";
+        $stmt->bind_param('sssssss', $like, $like, $like, $like, $like, $like, $like);
     $stmt->execute();
     $res = $stmt->get_result();
 } else {
-    $res = $con->query("SELECT id, nombre, apellidos, telefono, ciudad, correo
-                        FROM clientes ORDER BY id DESC");
+    $res = $con->query("SELECT id, nombre, apellidos, telefono, ciudad, correo, placa, modelo, color, telefono_contacto, notas_incidente, foto_placa FROM clientes ORDER BY id DESC");
 }
 
 // Pasar a array
@@ -56,6 +55,10 @@ if ($res) {
       <td>Teléfono</td>
       <td>Ciudad</td>
       <td>Correo</td>
+      <td>Placa</td>
+      <td>Modelo</td>
+      <td>Color</td>
+      <td>Foto</td>
       <td colspan="2">Acción</td>
     </tr>
 
@@ -70,6 +73,23 @@ if ($res) {
           <td><?php echo e($fila['telefono']); ?></td>
           <td><?php echo e($fila['ciudad']); ?></td>
           <td><?php echo e($fila['correo']); ?></td>
+          <td><?php echo e($fila['placa'] ?? ''); ?></td>
+          <td><?php echo e($fila['modelo'] ?? ''); ?></td>
+          <td><?php echo e($fila['color'] ?? ''); ?></td>
+          <td>
+            <?php if (!empty($fila['foto_placa'])): ?>
+              <?php $b = base64_encode($fila['foto_placa']);
+                    $mime = 'image/jpeg';
+                    if (function_exists('finfo_open')) {
+                      $finfo = finfo_open(FILEINFO_MIME_TYPE);
+                      $det = finfo_buffer($finfo, $fila['foto_placa']);
+                      if ($det) $mime = $det;
+                      finfo_close($finfo);
+                    }
+              ?>
+              <img src="data:<?php echo $mime; ?>;base64,<?php echo $b; ?>" alt="foto placa" style="max-width:80px;max-height:50px;">
+            <?php endif; ?>
+          </td>
           <td><a href="update.php?id=<?php echo (int)$fila['id']; ?>" class="btn__update">Editar</a></td>
           <td><a href="delete.php?id=<?php echo (int)$fila['id']; ?>" class="btn__delete"
                  onclick="return confirm('¿Eliminar este registro?');">Eliminar</a></td>
