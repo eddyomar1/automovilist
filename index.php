@@ -67,32 +67,6 @@ if ($res) {
 
       <h3 class="top-title">Registro de vehículos</h3>
 
-      <!-- Menu card: atajos rápidos -->
-      <div class="menu-card">
-        <div class="menu-grid">
-          <a href="insert.php" class="menu-item" title="Nuevo vehículo">
-            <div class="menu-icon">＋</div>
-            <div class="menu-label">Nuevo</div>
-            <div class="menu-sub">Agregar vehículo</div>
-          </a>
-          <a href="#buscar" class="menu-item" onclick="document.querySelector('input[name=buscar]').focus();return false;" title="Buscar">
-            <div class="menu-icon">🔍</div>
-            <div class="menu-label">Buscar</div>
-            <div class="menu-sub">Filtrar registros</div>
-          </a>
-          <a href="#" class="menu-item" title="Exportar">
-            <div class="menu-icon">⬇️</div>
-            <div class="menu-label">Exportar</div>
-            <div class="menu-sub">CSV / Excel</div>
-          </a>
-          <a href="#" class="menu-item" title="Ajustes">
-            <div class="menu-icon">⚙️</div>
-            <div class="menu-label">Ajustes</div>
-            <div class="menu-sub">Preferencias</div>
-          </a>
-        </div>
-      </div>
-
       <div class="table-wrapper">
         <table class="table">
           <thead>
