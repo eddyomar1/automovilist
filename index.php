@@ -31,7 +31,7 @@ if ($res) {
 <head>
   <meta charset="UTF-8">
   <title>Inicio</title>
-  <link rel="stylesheet" href="css/estilo.css">
+  <link rel="stylesheet" href="assets/css/custom.css">
   <meta name="viewport" content="width=device-width, initial-scale=1">
 </head>
 <body>
@@ -97,6 +97,47 @@ if ($res) {
       <?php endforeach; ?>
     <?php endif; ?>
   </table>
+</div>
+
+<div class="app-container">
+  <div class="card">
+    <div class="list-header">
+      <div class="controls-left">
+        <label>Mostrar
+          <select>
+            <option>10</option><option>25</option><option>50</option>
+          </select>
+        </label>
+        <input type="search" placeholder="Buscar..." />
+      </div>
+      <div class="controls-right">
+        <button class="toggle-btn">Solo con deuda</button>
+        <button class="toggle-btn active">Todos</button>
+        <button class="btn small">Residentes</button>
+        <button class="btn btn-outline small">Pagos</button>
+      </div>
+    </div>
+
+    <h3 style="margin:0 0 12px 0;color:#0f172a">LISTA DE COPROPIETARIOS</h3>
+
+    <div class="table-wrapper">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Edif/Apto</th>
+            <th>Nombres y Apellidos</th>
+            <th>Cédula</th>
+            <th>Teléfono</th>
+            <th>Estado</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- ... existing rows ... -->
+        </tbody>
+      </table>
+    </div>
+  </div>
 </div>
 </body>
 </html>
