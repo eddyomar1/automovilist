@@ -35,41 +35,33 @@ if ($res) {
   <meta name="viewport" content="width=device-width, initial-scale=1">
 </head>
 <body>
-  <div class="topbar">
-    <div class="title">RESIDENTES COOPNAMA II</div>
-    <div class="actions">
+  <header class="topbar">
+    <div class="topbar__inner">
+      <div class="title">RESIDENTES COOPNAMA II</div>
       <a href="insert.php" class="btn">Agregar</a>
     </div>
-  </div>
-
-  <div class="top-search">
-    <div class="search-row">
-      <form action="" method="post" style="display:flex;gap:8px;align-items:center;">
-        <input type="text" name="buscar" placeholder="buscar por nombre, apellidos, teléfono, ciudad, correo o placa" value="<?php echo e($buscar_text); ?>" class="input__text">
-        <input type="submit" class="btn" name="btn_buscar" value="Buscar">
-        <a href="insert.php" class="btn btn__nuevo">Nuevo</a>
-      </form>
-    </div>
-  </div>
+  </header>
 
   <div class="app-container">
     <div class="card">
       <div class="list-header">
         <div class="controls-left">
-          <label>Mostrar
-            <select>
-              <option>10</option><option>25</option><option>50</option>
+          <label class="show-label">Mostrar
+            <select name="page_length">
+              <option>10</option>
+              <option>25</option>
+              <option>50</option>
             </select>
           </label>
-          <form action="" method="post" style="margin:0">
-            <input type="search" name="buscar" placeholder="Buscar..." value="<?php echo e($buscar_text); ?>">
-          </form>
+          <span class="muted">registros</span>
         </div>
-        <div class="controls-right">
-          <button class="toggle-btn">Solo con deuda</button>
-          <button class="toggle-btn active">Todos</button>
-          <a href="insert.php" class="btn small">Nuevo</a>
-        </div>
+        <form class="controls-right" action="" method="post">
+          <label class="search-label">Buscar:
+            <input type="search" name="buscar" placeholder="Buscar..." value="<?php echo e($buscar_text); ?>" class="control-input">
+          </label>
+          <button type="submit" class="btn small" name="btn_buscar">Buscar</button>
+          <a href="insert.php" class="btn small btn__nuevo">Nuevo</a>
+        </form>
       </div>
 
       <h3 class="top-title">Registro de vehículos</h3>
@@ -78,15 +70,15 @@ if ($res) {
         <table class="table">
           <thead>
             <tr>
-              <th>Id</th>
-              <th>Nombre</th>
-              <th>Apellidos</th>
-              <th>Teléfono</th>
-              <th>Ciudad</th>
-              <th>Correo</th>
-              <th>Placa</th>
-              <th>Modelo</th>
-              <th>Color</th>
+              <th>Id <span class="sort-arrows"></span></th>
+              <th>Nombre <span class="sort-arrows"></span></th>
+              <th>Apellidos <span class="sort-arrows"></span></th>
+              <th>Teléfono <span class="sort-arrows"></span></th>
+              <th>Ciudad <span class="sort-arrows"></span></th>
+              <th>Correo <span class="sort-arrows"></span></th>
+              <th>Placa <span class="sort-arrows"></span></th>
+              <th>Modelo <span class="sort-arrows"></span></th>
+              <th>Color <span class="sort-arrows"></span></th>
               <th>Foto</th>
               <th>Acciones</th>
             </tr>
@@ -95,8 +87,8 @@ if ($res) {
             <?php if (count($resultado) === 0): ?>
               <tr><td colspan="11">Sin resultados.</td></tr>
             <?php else: ?>
-              <?php foreach($resultado as $fila): ?>
-                <tr>
+              <?php foreach($resultado as $i => $fila): ?>
+                <tr class="<?php echo $i % 2 === 0 ? 'row-warm' : 'row-warm-alt'; ?>">
                   <td><?php echo e($fila['id']); ?></td>
                   <td><?php echo e($fila['nombre']); ?></td>
                   <td><?php echo e($fila['apellidos']); ?></td>
@@ -120,7 +112,7 @@ if ($res) {
                       <img src="data:<?php echo $mime; ?>;base64,<?php echo $b; ?>" alt="foto placa" class="thumb">
                     <?php endif; ?>
                   </td>
-                  <td>
+                  <td class="actions-cell">
                     <a href="update.php?id=<?php echo (int)$fila['id']; ?>" class="btn-link">Editar</a>
                     |
                     <a href="delete.php?id=<?php echo (int)$fila['id']; ?>" class="btn-link" onclick="return confirm('¿Eliminar este registro?');">Eliminar</a>
