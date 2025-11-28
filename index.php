@@ -35,6 +35,13 @@ if ($res) {
   <meta name="viewport" content="width=device-width, initial-scale=1">
 </head>
 <body>
+  <div class="topbar">
+    <div class="title">RESIDENTES COOPNAMA II</div>
+    <div class="actions">
+      <a href="insert.php" class="btn">Agregar</a>
+    </div>
+  </div>
+
   <div class="top-search">
     <div class="search-row">
       <form action="" method="post" style="display:flex;gap:8px;align-items:center;">
