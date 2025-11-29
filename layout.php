@@ -18,11 +18,17 @@ function render_header(string $title='Vehículos', string $active='list'){ ?>
  .actions-col{width:140px}
  .thumb{width:72px;height:48px;object-fit:cover;border-radius:8px;border:1px solid rgba(0,0,0,.08)}
  .muted{color:#6b7280}
+ .nav-link.active{background:#0d6efd;color:#fff!important}
 </style>
 </head><body>
 <nav class="navbar navbar-expand-lg bg-white shadow-sm"><div class="container">
   <a class="navbar-brand fw-bold" href="index.php">COOPNAMA II — Vehículos</a>
-  <div class="ms-auto d-flex gap-2">
+  <div class="ms-auto d-flex align-items-center gap-3 flex-wrap">
+    <div class="nav nav-pills small">
+      <a class="nav-link <?php if ($active==='list'||$active==='new') echo 'active'; ?>" href="index.php">Vehículos</a>
+      <a class="nav-link" href="../contactos/index.php">Residentes</a>
+      <a class="nav-link" href="../contactos/visor.php">Visor</a>
+    </div>
     <?php if ($active !== 'new'): ?>
       <a href="insert.php" class="btn btn-primary btn-sm">Agregar</a>
     <?php endif; ?>
