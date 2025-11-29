@@ -16,6 +16,32 @@ if (!$data) { header('Location: index.php'); exit; }
 $errors = [];
 $old = $data;
 $currentFoto = $data['foto_placa'];
+$currentCedF = $data['foto_cedula_frente'];
+$currentCedB = $data['foto_cedula_atras'];
+
+function process_upload(string $field, array &$errors){
+  if (!has_file($field)) return null;
+  $f = $_FILES[$field];
+  if ($f['error'] !== UPLOAD_ERR_OK) {
+    $errors[] = "Error subiendo la imagen de {$field}.";
+    return null;
+  }
+  if ($f['size'] > 3 * 1024 * 1024) {
+    $errors[] = "La imagen de {$field} es demasiado grande (máx 3MB).";
+    return null;
+  }
+  $mime = null;
+  if (function_exists('finfo_open')) {
+    $finfo = finfo_open(FILEINFO_MIME_TYPE);
+    $mime = finfo_file($finfo, $f['tmp_name']);
+    finfo_close($finfo);
+  }
+  if ($mime && !in_array($mime, ['image/jpeg','image/png','image/gif'])) {
+    $errors[] = "Tipo de imagen no permitido en {$field}. Use JPG, PNG o GIF.";
+    return null;
+  }
+  return file_get_contents($f['tmp_name']);
+}
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   $old['nombre']    = body('nombre');
@@ -23,6 +49,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   $old['telefono']  = body('telefono');
   $old['ciudad']    = body('ciudad');
   $old['correo']    = body('correo');
+  $old['codigo_inquilino'] = body('codigo_inquilino');
   $old['placa']     = body('placa');
   $old['modelo']    = body('modelo');
   $old['color']     = body('color');
@@ -35,53 +62,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $errors[] = "Correo no válido.";
   }
 
-  $fotoData = null;
-  if (has_file('foto_placa')) {
-    $f = $_FILES['foto_placa'];
-    if ($f['error'] !== UPLOAD_ERR_OK) {
-      $errors[] = "Error subiendo la imagen.";
-    } elseif ($f['size'] > 3 * 1024 * 1024) {
-      $errors[] = "La imagen es demasiado grande (máx 3MB).";
-    } else {
-      $mime = null;
-      if (function_exists('finfo_open')) {
-        $finfo = finfo_open(FILEINFO_MIME_TYPE);
-        $mime = finfo_file($finfo, $f['tmp_name']);
-        finfo_close($finfo);
-      }
-      if ($mime && !in_array($mime, ['image/jpeg','image/png','image/gif'])) {
-        $errors[] = "Tipo de imagen no permitido. Use JPG, PNG o GIF.";
-      } else {
-        $fotoData = file_get_contents($f['tmp_name']);
-      }
-    }
+  if (!$errors) {
+    $fotoPlacaNew  = process_upload('foto_placa', $errors);
+    $fotoCedFNew   = process_upload('foto_cedula_frente', $errors);
+    $fotoCedBNew   = process_upload('foto_cedula_atras', $errors);
   }
 
   if (!$errors) {
-    if ($fotoData !== null) {
-      $sql = "UPDATE clientes
-              SET nombre=?, apellidos=?, telefono=?, ciudad=?, correo=?, placa=?, modelo=?, color=?, telefono_contacto=?, notas_incidente=?, foto_placa=?
-              WHERE id=?";
-      $stmt = $con->prepare($sql);
-      if ($stmt) {
-        $stmt->bind_param(
-          'sssssssssssi',
-          $old['nombre'], $old['apellidos'], $old['telefono'], $old['ciudad'], $old['correo'],
-          $old['placa'], $old['modelo'], $old['color'], $old['telefono_contacto'], $old['notas_incidente'], $fotoData, $id
-        );
-      }
-    } else {
-      $sql = "UPDATE clientes
-              SET nombre=?, apellidos=?, telefono=?, ciudad=?, correo=?, placa=?, modelo=?, color=?, telefono_contacto=?, notas_incidente=?
-              WHERE id=?";
-      $stmt = $con->prepare($sql);
-      if ($stmt) {
-        $stmt->bind_param(
-          'ssssssssssi',
-          $old['nombre'], $old['apellidos'], $old['telefono'], $old['ciudad'], $old['correo'],
-          $old['placa'], $old['modelo'], $old['color'], $old['telefono_contacto'], $old['notas_incidente'], $id
-        );
-      }
+    $fotoPlacaFinal = $fotoPlacaNew !== null ? $fotoPlacaNew : $currentFoto;
+    $fotoCedFFinal  = $fotoCedFNew !== null ? $fotoCedFNew   : $currentCedF;
+    $fotoCedBFinal  = $fotoCedBNew !== null ? $fotoCedBNew   : $currentCedB;
+
+    $sql = "UPDATE clientes
+            SET nombre=?, apellidos=?, telefono=?, ciudad=?, correo=?, codigo_inquilino=?, placa=?, modelo=?, color=?, telefono_contacto=?, notas_incidente=?, foto_placa=?, foto_cedula_frente=?, foto_cedula_atras=?
+            WHERE id=?";
+    $stmt = $con->prepare($sql);
+    if ($stmt) {
+      $stmt->bind_param(
+        'ssssssssssssssi',
+        $old['nombre'], $old['apellidos'], $old['telefono'], $old['ciudad'], $old['correo'], $old['codigo_inquilino'],
+        $old['placa'], $old['modelo'], $old['color'], $old['telefono_contacto'], $old['notas_incidente'],
+        $fotoPlacaFinal, $fotoCedFFinal, $fotoCedBFinal, $id
+      );
     }
 
     if (!$stmt) {
@@ -140,6 +142,10 @@ render_header('Editar vehículo');
           <input type="email" name="correo" class="form-control" value="<?= e($old['correo']) ?>" required>
         </div>
         <div class="col-md-6">
+          <label class="form-label">Código de inquilino</label>
+          <input type="text" name="codigo_inquilino" class="form-control" value="<?= e($old['codigo_inquilino']) ?>" placeholder="Ej. A-203">
+        </div>
+        <div class="col-md-6">
           <label class="form-label">Placa / matrícula</label>
           <input type="text" name="placa" class="form-control" value="<?= e($old['placa']) ?>">
         </div>
@@ -176,6 +182,46 @@ render_header('Editar vehículo');
             <div class="mt-2">
               <span class="text-muted small">Actual:</span><br>
               <img src="data:<?= $mime ?>;base64,<?= base64_encode($currentFoto) ?>" alt="Foto actual" class="thumb">
+            </div>
+          <?php endif; ?>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">Cédula - frente</label>
+          <input type="file" name="foto_cedula_frente" accept="image/*" class="form-control">
+          <div class="form-text">Deja vacío para mantener la actual.</div>
+          <?php if (!empty($currentCedF)): ?>
+            <?php
+              $mimeF = 'image/jpeg';
+              if (function_exists('finfo_open')) {
+                $finfo = finfo_open(FILEINFO_MIME_TYPE);
+                $det = finfo_buffer($finfo, $currentCedF);
+                if ($det) $mimeF = $det;
+                finfo_close($finfo);
+              }
+            ?>
+            <div class="mt-2">
+              <span class="text-muted small">Actual:</span><br>
+              <img src="data:<?= $mimeF ?>;base64,<?= base64_encode($currentCedF) ?>" alt="Cédula frente" class="thumb">
+            </div>
+          <?php endif; ?>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">Cédula - atrás</label>
+          <input type="file" name="foto_cedula_atras" accept="image/*" class="form-control">
+          <div class="form-text">Deja vacío para mantener la actual.</div>
+          <?php if (!empty($currentCedB)): ?>
+            <?php
+              $mimeB = 'image/jpeg';
+              if (function_exists('finfo_open')) {
+                $finfo = finfo_open(FILEINFO_MIME_TYPE);
+                $det = finfo_buffer($finfo, $currentCedB);
+                if ($det) $mimeB = $det;
+                finfo_close($finfo);
+              }
+            ?>
+            <div class="mt-2">
+              <span class="text-muted small">Actual:</span><br>
+              <img src="data:<?= $mimeB ?>;base64,<?= base64_encode($currentCedB) ?>" alt="Cédula atrás" class="thumb">
             </div>
           <?php endif; ?>
         </div>

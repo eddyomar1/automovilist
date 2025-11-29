@@ -4,16 +4,16 @@ require __DIR__ . '/init.php';
 $buscar = body('buscar', '');
 $rows   = [];
 
-$baseSql = "SELECT id, nombre, apellidos, telefono, ciudad, correo, placa, modelo, color, telefono_contacto, notas_incidente, foto_placa FROM clientes";
+$baseSql = "SELECT id, nombre, apellidos, telefono, ciudad, correo, codigo_inquilino, placa, modelo, color, telefono_contacto, notas_incidente, foto_placa, foto_cedula_frente, foto_cedula_atras FROM clientes";
 if ($buscar !== '') {
   $like = "%{$buscar}%";
-  $sql  = $baseSql . " WHERE (nombre LIKE ? OR apellidos LIKE ? OR telefono LIKE ? OR ciudad LIKE ? OR correo LIKE ? OR placa LIKE ? OR modelo LIKE ? OR color LIKE ? OR telefono_contacto LIKE ? OR notas_incidente LIKE ?)
+  $sql  = $baseSql . " WHERE (nombre LIKE ? OR apellidos LIKE ? OR telefono LIKE ? OR ciudad LIKE ? OR correo LIKE ? OR codigo_inquilino LIKE ? OR placa LIKE ? OR modelo LIKE ? OR color LIKE ? OR telefono_contacto LIKE ? OR notas_incidente LIKE ?)
                       ORDER BY id DESC";
   $stmt = $con->prepare($sql);
   if ($stmt) {
     $stmt->bind_param(
-      'ssssssssss',
-      $like, $like, $like, $like, $like,
+      'sssssssssss',
+      $like, $like, $like, $like, $like, $like,
       $like, $like, $like, $like, $like
     );
     $stmt->execute();
@@ -67,10 +67,13 @@ render_header('Vehículos', 'list');
           <th>Teléfono</th>
           <th>Ciudad</th>
           <th>Correo</th>
+          <th>Cód.</th>
           <th>Placa</th>
           <th>Modelo</th>
           <th>Color</th>
           <th>Foto</th>
+          <th>Cédula (frente)</th>
+          <th>Cédula (atrás)</th>
           <th>Contacto</th>
           <th>Notas</th>
           <th class="text-center">Acciones</th>
@@ -78,7 +81,7 @@ render_header('Vehículos', 'list');
       </thead>
       <tbody>
         <?php if (!$rows): ?>
-          <tr><td colspan="13" class="text-center text-muted py-4">Sin resultados.</td></tr>
+          <tr><td colspan="16" class="text-center text-muted py-4">Sin resultados.</td></tr>
         <?php else: ?>
           <?php foreach($rows as $row): ?>
             <tr>
@@ -88,6 +91,13 @@ render_header('Vehículos', 'list');
               <td><?= e($row['telefono']) ?></td>
               <td><?= e($row['ciudad']) ?></td>
               <td><?= e($row['correo']) ?></td>
+              <td>
+                <?php if (!empty($row['codigo_inquilino'])): ?>
+                  <span class="badge text-bg-secondary"><?= e($row['codigo_inquilino']) ?></span>
+                <?php else: ?>
+                  <span class="text-muted">—</span>
+                <?php endif; ?>
+              </td>
               <td><span class="badge text-bg-primary-subtle text-primary"><?= e($row['placa'] ?: '—') ?></span></td>
               <td><?= e($row['modelo'] ?: '—') ?></td>
               <td><?= e($row['color'] ?: '—') ?></td>
@@ -104,6 +114,40 @@ render_header('Vehículos', 'list');
                     }
                   ?>
                   <img src="data:<?= $mime ?>;base64,<?= $b64 ?>" alt="Foto placa" class="thumb">
+                <?php else: ?>
+                  <span class="text-muted">—</span>
+                <?php endif; ?>
+              </td>
+              <td>
+                <?php if (!empty($row['foto_cedula_frente'])): ?>
+                  <?php
+                    $b64f = base64_encode($row['foto_cedula_frente']);
+                    $mimef = 'image/jpeg';
+                    if (function_exists('finfo_open')) {
+                      $finfo = finfo_open(FILEINFO_MIME_TYPE);
+                      $det = finfo_buffer($finfo, $row['foto_cedula_frente']);
+                      if ($det) $mimef = $det;
+                      finfo_close($finfo);
+                    }
+                  ?>
+                  <img src="data:<?= $mimef ?>;base64,<?= $b64f ?>" alt="Cédula frente" class="thumb">
+                <?php else: ?>
+                  <span class="text-muted">—</span>
+                <?php endif; ?>
+              </td>
+              <td>
+                <?php if (!empty($row['foto_cedula_atras'])): ?>
+                  <?php
+                    $b64b = base64_encode($row['foto_cedula_atras']);
+                    $mimeb = 'image/jpeg';
+                    if (function_exists('finfo_open')) {
+                      $finfo = finfo_open(FILEINFO_MIME_TYPE);
+                      $det = finfo_buffer($finfo, $row['foto_cedula_atras']);
+                      if ($det) $mimeb = $det;
+                      finfo_close($finfo);
+                    }
+                  ?>
+                  <img src="data:<?= $mimeb ?>;base64,<?= $b64b ?>" alt="Cédula atrás" class="thumb">
                 <?php else: ?>
                   <span class="text-muted">—</span>
                 <?php endif; ?>

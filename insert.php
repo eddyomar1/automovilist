@@ -4,8 +4,33 @@ require __DIR__ . '/init.php';
 $errors = [];
 $old = [
   'nombre' => '', 'apellidos' => '', 'telefono' => '', 'ciudad' => '', 'correo' => '',
-  'placa' => '', 'modelo' => '', 'color' => '', 'telefono_contacto' => '', 'notas_incidente' => ''
+  'codigo_inquilino' => '', 'placa' => '', 'modelo' => '', 'color' => '',
+  'telefono_contacto' => '', 'notas_incidente' => ''
 ];
+
+function process_upload(string $field, array &$errors){
+  if (!has_file($field)) return null;
+  $f = $_FILES[$field];
+  if ($f['error'] !== UPLOAD_ERR_OK) {
+    $errors[] = "Error subiendo la imagen de {$field}.";
+    return null;
+  }
+  if ($f['size'] > 3 * 1024 * 1024) {
+    $errors[] = "La imagen de {$field} es demasiado grande (máx 3MB).";
+    return null;
+  }
+  $mime = null;
+  if (function_exists('finfo_open')) {
+    $finfo = finfo_open(FILEINFO_MIME_TYPE);
+    $mime = finfo_file($finfo, $f['tmp_name']);
+    finfo_close($finfo);
+  }
+  if ($mime && !in_array($mime, ['image/jpeg','image/png','image/gif'])) {
+    $errors[] = "Tipo de imagen no permitido en {$field}. Use JPG, PNG o GIF.";
+    return null;
+  }
+  return file_get_contents($f['tmp_name']);
+}
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   $old['nombre']    = body('nombre');
@@ -13,6 +38,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   $old['telefono']  = body('telefono');
   $old['ciudad']    = body('ciudad');
   $old['correo']    = body('correo');
+  $old['codigo_inquilino'] = body('codigo_inquilino');
   $old['placa']     = body('placa');
   $old['modelo']    = body('modelo');
   $old['color']     = body('color');
@@ -25,40 +51,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $errors[] = "Correo no válido.";
   }
 
-  $fotoData = null;
-  if (has_file('foto_placa')) {
-    $f = $_FILES['foto_placa'];
-    if ($f['error'] !== UPLOAD_ERR_OK) {
-      $errors[] = "Error subiendo la imagen.";
-    } elseif ($f['size'] > 3 * 1024 * 1024) {
-      $errors[] = "La imagen es demasiado grande (máx 3MB).";
-    } else {
-      $mime = null;
-      if (function_exists('finfo_open')) {
-        $finfo = finfo_open(FILEINFO_MIME_TYPE);
-        $mime = finfo_file($finfo, $f['tmp_name']);
-        finfo_close($finfo);
-      }
-      if ($mime && !in_array($mime, ['image/jpeg','image/png','image/gif'])) {
-        $errors[] = "Tipo de imagen no permitido. Use JPG, PNG o GIF.";
-      } else {
-        $fotoData = file_get_contents($f['tmp_name']);
-      }
-    }
-  }
+  $fotoPlaca  = process_upload('foto_placa', $errors);
+  $fotoCedulaF = process_upload('foto_cedula_frente', $errors);
+  $fotoCedulaB = process_upload('foto_cedula_atras', $errors);
 
   if (!$errors) {
-    $sql = "INSERT INTO clientes (nombre, apellidos, telefono, ciudad, correo, placa, modelo, color, telefono_contacto, notas_incidente, foto_placa)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+    $sql = "INSERT INTO clientes (nombre, apellidos, telefono, ciudad, correo, codigo_inquilino, placa, modelo, color, telefono_contacto, notas_incidente, foto_placa, foto_cedula_frente, foto_cedula_atras)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
     $stmt = $con->prepare($sql);
     if (!$stmt) {
       $errors[] = 'Error en la preparación de la consulta: ' . $con->error;
     } else {
-      $fotoParam = $fotoData !== null ? $fotoData : null;
       $stmt->bind_param(
-        'sssssssssss',
+        'ssssssssssssss',
         $old['nombre'], $old['apellidos'], $old['telefono'], $old['ciudad'], $old['correo'],
-        $old['placa'], $old['modelo'], $old['color'], $old['telefono_contacto'], $old['notas_incidente'], $fotoParam
+        $old['codigo_inquilino'], $old['placa'], $old['modelo'], $old['color'], $old['telefono_contacto'], $old['notas_incidente'],
+        $fotoPlaca, $fotoCedulaF, $fotoCedulaB
       );
       $exec = $stmt->execute();
       if (!$exec) {
@@ -113,6 +121,10 @@ render_header('Nuevo vehículo', 'new');
           <input type="email" name="correo" class="form-control" value="<?= e($old['correo']) ?>" required>
         </div>
         <div class="col-md-6">
+          <label class="form-label">Código de inquilino</label>
+          <input type="text" name="codigo_inquilino" class="form-control" value="<?= e($old['codigo_inquilino']) ?>" placeholder="Ej. A-203">
+        </div>
+        <div class="col-md-6">
           <label class="form-label">Placa / matrícula</label>
           <input type="text" name="placa" class="form-control" value="<?= e($old['placa']) ?>">
         </div>
@@ -136,6 +148,16 @@ render_header('Nuevo vehículo', 'new');
           <label class="form-label">Foto de la placa (opcional)</label>
           <input type="file" name="foto_placa" accept="image/*" class="form-control">
           <div class="form-text">Formatos JPG/PNG/GIF. Máximo 3MB.</div>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">Cédula - frente (opcional)</label>
+          <input type="file" name="foto_cedula_frente" accept="image/*" class="form-control">
+          <div class="form-text">Usa una foto clara de la parte frontal.</div>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">Cédula - atrás (opcional)</label>
+          <input type="file" name="foto_cedula_atras" accept="image/*" class="form-control">
+          <div class="form-text">Foto de la parte trasera de la cédula.</div>
         </div>
         <div class="col-12 d-flex justify-content-end gap-2">
           <a href="index.php" class="btn btn-outline-secondary">Cancelar</a>
