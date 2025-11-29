@@ -1,129 +1,142 @@
 <?php
-require_once 'conexion.php';
+require __DIR__ . '/init.php';
 
-function e($s){ return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }
+$buscar = body('buscar', '');
+$rows   = [];
 
-$buscar_text = trim($_POST['buscar'] ?? '');
-$resultado   = [];
-
-// Consulta
-if (isset($_POST['btn_buscar']) && $buscar_text !== '') {
-        $sql = "SELECT id, nombre, apellidos, telefono, ciudad, correo, placa, modelo, color, telefono_contacto, notas_incidente, foto_placa
-          FROM clientes
-          WHERE (nombre LIKE ? OR apellidos LIKE ? OR telefono LIKE ? OR ciudad LIKE ? OR correo LIKE ? OR placa LIKE ?)
-          ORDER BY id DESC";
-    $stmt = $con->prepare($sql);
-        $like = "%{$buscar_text}%";
-        $stmt->bind_param('sssssss', $like, $like, $like, $like, $like, $like, $like);
+$baseSql = "SELECT id, nombre, apellidos, telefono, ciudad, correo, placa, modelo, color, telefono_contacto, notas_incidente, foto_placa FROM clientes";
+if ($buscar !== '') {
+  $like = "%{$buscar}%";
+  $sql  = $baseSql . " WHERE (nombre LIKE ? OR apellidos LIKE ? OR telefono LIKE ? OR ciudad LIKE ? OR correo LIKE ? OR placa LIKE ? OR modelo LIKE ? OR color LIKE ? OR telefono_contacto LIKE ? OR notas_incidente LIKE ?)
+                      ORDER BY id DESC";
+  $stmt = $con->prepare($sql);
+  if ($stmt) {
+    $stmt->bind_param(
+      'ssssssssss',
+      $like, $like, $like, $like, $like,
+      $like, $like, $like, $like, $like
+    );
     $stmt->execute();
     $res = $stmt->get_result();
+  }
 } else {
-    $res = $con->query("SELECT id, nombre, apellidos, telefono, ciudad, correo, placa, modelo, color, telefono_contacto, notas_incidente, foto_placa FROM clientes ORDER BY id DESC");
+  $res = $con->query($baseSql . " ORDER BY id DESC");
 }
 
-// Pasar a array
-if ($res) {
-    while ($row = $res->fetch_assoc()) { $resultado[] = $row; }
+if (!empty($res)) {
+  while ($row = $res->fetch_assoc()) { $rows[] = $row; }
 }
+
+render_header('Vehículos', 'list');
 ?>
-<!DOCTYPE html>
-<html lang="es">
-<head>
-  <meta charset="UTF-8">
-  <title>Inicio</title>
-  <link rel="stylesheet" href="assets/css/custom.css">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-</head>
-<body>
-  <header class="topbar">
-    <div class="topbar__inner">
-      <div class="title">RESIDENTES COOPNAMA II</div>
-      <a href="insert.php" class="btn">Agregar</a>
+<div class="card p-3 p-md-4">
+  <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 mb-3">
+    <div>
+      <h1 class="fw-bold mb-1">Vehículos registrados</h1>
+      <p class="text-muted mb-0">Control de residentes, autos y placas.</p>
     </div>
-  </header>
-
-  <div class="app-container">
-    <div class="card">
-      <div class="list-header">
-        <div class="controls-left">
-          <label class="show-label">Mostrar
-            <select name="page_length">
-              <option>10</option>
-              <option>25</option>
-              <option>50</option>
-            </select>
-          </label>
-          <span class="muted">registros</span>
-        </div>
-        <form class="controls-right" action="" method="post">
-          <label class="search-label">Buscar:
-            <input type="search" name="buscar" placeholder="Buscar..." value="<?php echo e($buscar_text); ?>" class="control-input">
-          </label>
-          <button type="submit" class="btn small" name="btn_buscar">Buscar</button>
-          <a href="insert.php" class="btn small btn__nuevo">Nuevo</a>
-        </form>
+    <form class="d-flex flex-column flex-md-row align-items-md-center gap-2" method="post">
+      <label class="form-label d-flex align-items-center gap-2 mb-0">
+        <span class="muted">Mostrar</span>
+        <select id="lenSelect" class="form-select form-select-sm w-auto">
+          <option>5</option><option selected>10</option><option>25</option><option>50</option><option>100</option>
+        </select>
+      </label>
+      <div class="input-group input-group-sm">
+        <span class="input-group-text bg-white border-end-0">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+            <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85Zm-5.242 1.656a5 5 0 1 1 0-10 5 5 0 0 1 0 10Z"/>
+          </svg>
+        </span>
+        <input type="search" name="buscar" id="globalSearch" class="form-control form-control-sm border-start-0" placeholder="Buscar" value="<?= e($buscar) ?>">
       </div>
-
-      <h3 class="top-title">Registro de vehículos</h3>
-
-      <div class="table-wrapper">
-        <table class="table">
-          <thead>
-            <tr>
-              <th>Id <span class="sort-arrows"></span></th>
-              <th>Nombre <span class="sort-arrows"></span></th>
-              <th>Apellidos <span class="sort-arrows"></span></th>
-              <th>Teléfono <span class="sort-arrows"></span></th>
-              <th>Ciudad <span class="sort-arrows"></span></th>
-              <th>Correo <span class="sort-arrows"></span></th>
-              <th>Placa <span class="sort-arrows"></span></th>
-              <th>Modelo <span class="sort-arrows"></span></th>
-              <th>Color <span class="sort-arrows"></span></th>
-              <th>Foto</th>
-              <th>Acciones</th>
-            </tr>
-          </thead>
-          <tbody>
-            <?php if (count($resultado) === 0): ?>
-              <tr><td colspan="11">Sin resultados.</td></tr>
-            <?php else: ?>
-              <?php foreach($resultado as $i => $fila): ?>
-                <tr class="<?php echo $i % 2 === 0 ? 'row-warm' : 'row-warm-alt'; ?>">
-                  <td><?php echo e($fila['id']); ?></td>
-                  <td><?php echo e($fila['nombre']); ?></td>
-                  <td><?php echo e($fila['apellidos']); ?></td>
-                  <td><?php echo e($fila['telefono']); ?></td>
-                  <td><?php echo e($fila['ciudad']); ?></td>
-                  <td><?php echo e($fila['correo']); ?></td>
-                  <td><?php echo e($fila['placa'] ?? ''); ?></td>
-                  <td><?php echo e($fila['modelo'] ?? ''); ?></td>
-                  <td><?php echo e($fila['color'] ?? ''); ?></td>
-                  <td>
-                    <?php if (!empty($fila['foto_placa'])): ?>
-                      <?php $b = base64_encode($fila['foto_placa']);
-                            $mime = 'image/jpeg';
-                            if (function_exists('finfo_open')) {
-                              $finfo = finfo_open(FILEINFO_MIME_TYPE);
-                              $det = finfo_buffer($finfo, $fila['foto_placa']);
-                              if ($det) $mime = $det;
-                              finfo_close($finfo);
-                            }
-                      ?>
-                      <img src="data:<?php echo $mime; ?>;base64,<?php echo $b; ?>" alt="foto placa" class="thumb">
-                    <?php endif; ?>
-                  </td>
-                  <td class="actions-cell">
-                    <a href="update.php?id=<?php echo (int)$fila['id']; ?>" class="btn-link">Editar</a>
-                    |
-                    <a href="delete.php?id=<?php echo (int)$fila['id']; ?>" class="btn-link" onclick="return confirm('¿Eliminar este registro?');">Eliminar</a>
-                  </td>
-                </tr>
-              <?php endforeach; ?>
-            <?php endif; ?>
-          </tbody>
-        </table>
+      <div class="d-flex gap-2">
+        <button class="btn btn-outline-secondary btn-sm" type="submit" name="btn_buscar">Buscar</button>
+        <a href="insert.php" class="btn btn-primary btn-sm">Nuevo</a>
       </div>
-    </div>
+    </form>
   </div>
-</body>
-</html>
+
+  <div class="table-responsive">
+    <table class="table table-hover align-middle table-nowrap" id="tabla">
+      <thead class="table-light">
+        <tr>
+          <th>ID</th>
+          <th>Nombre</th>
+          <th>Apellidos</th>
+          <th>Teléfono</th>
+          <th>Ciudad</th>
+          <th>Correo</th>
+          <th>Placa</th>
+          <th>Modelo</th>
+          <th>Color</th>
+          <th>Foto</th>
+          <th>Contacto</th>
+          <th>Notas</th>
+          <th class="text-center">Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        <?php if (!$rows): ?>
+          <tr><td colspan="13" class="text-center text-muted py-4">Sin resultados.</td></tr>
+        <?php else: ?>
+          <?php foreach($rows as $row): ?>
+            <tr>
+              <td class="text-muted"><?= (int)$row['id'] ?></td>
+              <td><?= e($row['nombre']) ?></td>
+              <td><?= e($row['apellidos']) ?></td>
+              <td><?= e($row['telefono']) ?></td>
+              <td><?= e($row['ciudad']) ?></td>
+              <td><?= e($row['correo']) ?></td>
+              <td><span class="badge text-bg-primary-subtle text-primary"><?= e($row['placa'] ?: '—') ?></span></td>
+              <td><?= e($row['modelo'] ?: '—') ?></td>
+              <td><?= e($row['color'] ?: '—') ?></td>
+              <td>
+                <?php if (!empty($row['foto_placa'])): ?>
+                  <?php
+                    $b64 = base64_encode($row['foto_placa']);
+                    $mime = 'image/jpeg';
+                    if (function_exists('finfo_open')) {
+                      $finfo = finfo_open(FILEINFO_MIME_TYPE);
+                      $det = finfo_buffer($finfo, $row['foto_placa']);
+                      if ($det) $mime = $det;
+                      finfo_close($finfo);
+                    }
+                  ?>
+                  <img src="data:<?= $mime ?>;base64,<?= $b64 ?>" alt="Foto placa" class="thumb">
+                <?php else: ?>
+                  <span class="text-muted">—</span>
+                <?php endif; ?>
+              </td>
+              <td>
+                <?php if (!empty($row['telefono_contacto'])): ?>
+                  <div><?= e($row['telefono_contacto']) ?></div>
+                <?php else: ?>
+                  <span class="text-muted">—</span>
+                <?php endif; ?>
+              </td>
+              <td class="text-break">
+                <?php
+                  $nota = trim((string)$row['notas_incidente']);
+                  $notaCorta = strlen($nota) > 90 ? substr($nota, 0, 90) . '…' : $nota;
+                ?>
+                <?php if ($nota !== ''): ?>
+                  <?= e($notaCorta) ?>
+                <?php else: ?>
+                  <span class="text-muted">—</span>
+                <?php endif; ?>
+              </td>
+              <td class="text-center">
+                <div class="d-inline-flex gap-2 actions">
+                  <a href="update.php?id=<?= (int)$row['id'] ?>" class="btn btn-sm btn-outline-primary">Editar</a>
+                  <a href="delete.php?id=<?= (int)$row['id'] ?>" class="btn btn-sm btn-outline-danger btn-delete">Eliminar</a>
+                </div>
+              </td>
+            </tr>
+          <?php endforeach; ?>
+        <?php endif; ?>
+      </tbody>
+    </table>
+  </div>
+</div>
+<?php render_footer(); ?>

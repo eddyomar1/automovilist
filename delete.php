@@ -1,8 +1,8 @@
 <?php
-require_once 'conexion.php';
+require __DIR__ . '/init.php';
 
 if (!isset($_GET['id']) || !ctype_digit($_GET['id'])) {
-    header('Location: index.php'); exit;
+  header('Location: index.php'); exit;
 }
 $id = (int)$_GET['id'];
 
@@ -12,4 +12,3 @@ $stmt->execute();
 
 header('Location: index.php');
 exit;
-?>

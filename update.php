@@ -1,87 +1,190 @@
 <?php
-require_once 'conexion.php';
-
-function e($s){ return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }
+require __DIR__ . '/init.php';
 
 if (!isset($_GET['id']) || !ctype_digit($_GET['id'])) {
-    header('Location: index.php'); exit;
+  header('Location: index.php'); exit;
 }
 $id = (int)$_GET['id'];
 
-// Buscar registro
 $stmt = $con->prepare("SELECT * FROM clientes WHERE id = ? LIMIT 1");
 $stmt->bind_param('i', $id);
 $stmt->execute();
 $res = $stmt->get_result();
-$resultado = $res->fetch_assoc();
-if (!$resultado) { header('Location: index.php'); exit; }
+$data = $res->fetch_assoc();
+if (!$data) { header('Location: index.php'); exit; }
 
 $errors = [];
-// Pre-carga
-$nombre    = $resultado['nombre'];
-$apellidos = $resultado['apellidos'];
-$telefono  = $resultado['telefono'];
-$ciudad    = $resultado['ciudad'];
-$correo    = $resultado['correo'];
+$old = $data;
+$currentFoto = $data['foto_placa'];
 
-if (isset($_POST['guardar'])) {
-    $nombre    = trim($_POST['nombre']    ?? '');
-    $apellidos = trim($_POST['apellidos'] ?? '');
-    $telefono  = trim($_POST['telefono']  ?? '');
-    $ciudad    = trim($_POST['ciudad']    ?? '');
-    $correo    = trim($_POST['correo']    ?? '');
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+  $old['nombre']    = body('nombre');
+  $old['apellidos'] = body('apellidos');
+  $old['telefono']  = body('telefono');
+  $old['ciudad']    = body('ciudad');
+  $old['correo']    = body('correo');
+  $old['placa']     = body('placa');
+  $old['modelo']    = body('modelo');
+  $old['color']     = body('color');
+  $old['telefono_contacto'] = body('telefono_contacto');
+  $old['notas_incidente']   = body('notas_incidente');
 
-    if ($nombre==='' || $apellidos==='' || $telefono==='' || $ciudad==='' || $correo==='') {
-        $errors[] = "Todos los campos son obligatorios.";
-    } elseif (!filter_var($correo, FILTER_VALIDATE_EMAIL)) {
-        $errors[] = "Correo no válido.";
+  if ($old['nombre']==='' || $old['apellidos']==='' || $old['telefono']==='' || $old['ciudad']==='' || $old['correo']==='') {
+    $errors[] = "Los datos personales son obligatorios.";
+  } elseif (!filter_var($old['correo'], FILTER_VALIDATE_EMAIL)) {
+    $errors[] = "Correo no válido.";
+  }
+
+  $fotoData = null;
+  if (has_file('foto_placa')) {
+    $f = $_FILES['foto_placa'];
+    if ($f['error'] !== UPLOAD_ERR_OK) {
+      $errors[] = "Error subiendo la imagen.";
+    } elseif ($f['size'] > 3 * 1024 * 1024) {
+      $errors[] = "La imagen es demasiado grande (máx 3MB).";
+    } else {
+      $mime = null;
+      if (function_exists('finfo_open')) {
+        $finfo = finfo_open(FILEINFO_MIME_TYPE);
+        $mime = finfo_file($finfo, $f['tmp_name']);
+        finfo_close($finfo);
+      }
+      if ($mime && !in_array($mime, ['image/jpeg','image/png','image/gif'])) {
+        $errors[] = "Tipo de imagen no permitido. Use JPG, PNG o GIF.";
+      } else {
+        $fotoData = file_get_contents($f['tmp_name']);
+      }
+    }
+  }
+
+  if (!$errors) {
+    if ($fotoData !== null) {
+      $sql = "UPDATE clientes
+              SET nombre=?, apellidos=?, telefono=?, ciudad=?, correo=?, placa=?, modelo=?, color=?, telefono_contacto=?, notas_incidente=?, foto_placa=?
+              WHERE id=?";
+      $stmt = $con->prepare($sql);
+      if ($stmt) {
+        $stmt->bind_param(
+          'sssssssssssi',
+          $old['nombre'], $old['apellidos'], $old['telefono'], $old['ciudad'], $old['correo'],
+          $old['placa'], $old['modelo'], $old['color'], $old['telefono_contacto'], $old['notas_incidente'], $fotoData, $id
+        );
+      }
+    } else {
+      $sql = "UPDATE clientes
+              SET nombre=?, apellidos=?, telefono=?, ciudad=?, correo=?, placa=?, modelo=?, color=?, telefono_contacto=?, notas_incidente=?
+              WHERE id=?";
+      $stmt = $con->prepare($sql);
+      if ($stmt) {
+        $stmt->bind_param(
+          'ssssssssssi',
+          $old['nombre'], $old['apellidos'], $old['telefono'], $old['ciudad'], $old['correo'],
+          $old['placa'], $old['modelo'], $old['color'], $old['telefono_contacto'], $old['notas_incidente'], $id
+        );
+      }
     }
 
-    if (!$errors) {
-        $upd = $con->prepare("UPDATE clientes
-                              SET nombre=?, apellidos=?, telefono=?, ciudad=?, correo=?
-                              WHERE id=?");
-        $upd->bind_param('sssssi', $nombre, $apellidos, $telefono, $ciudad, $correo, $id);
-        $upd->execute();
+    if (!$stmt) {
+      $errors[] = 'Error en la preparación de la consulta: ' . $con->error;
+    } else {
+      $exec = $stmt->execute();
+      if (!$exec) {
+        $errors[] = 'Error al guardar: ' . $stmt->error;
+      } else {
         header('Location: index.php'); exit;
+      }
     }
+  }
 }
+
+render_header('Editar vehículo');
 ?>
-<!DOCTYPE html>
-<html lang="es">
-<head>
-  <meta charset="UTF-8">
-  <title>Editar Cliente</title>
-  <link rel="stylesheet" href="css/estilo.css">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-</head>
-<body>
-<div class="contenedor">
-  <h2>CRUD EN PHP CON MYSQL</h2>
+<div class="row justify-content-center">
+  <div class="col-lg-10 col-xl-8">
+    <div class="card p-4">
+      <div class="d-flex justify-content-between align-items-start gap-3 mb-3">
+        <div>
+          <h1 class="fw-bold mb-1">Editar vehículo</h1>
+          <p class="text-muted mb-0">Actualiza los datos del residente y su auto.</p>
+        </div>
+        <a href="index.php" class="btn btn-outline-secondary btn-sm">Volver</a>
+      </div>
 
-  <?php if ($errors): ?>
-    <div class="alert alert-danger">
-      <?php foreach($errors as $err) echo "<p>".e($err)."</p>"; ?>
-    </div>
-  <?php endif; ?>
+      <?php if ($errors): ?>
+        <div class="alert alert-danger">
+          <?php foreach($errors as $err): ?>
+            <div><?= e($err) ?></div>
+          <?php endforeach; ?>
+        </div>
+      <?php endif; ?>
 
-  <form action="" method="post">
-    <div class="form-group">
-      <input type="text" name="nombre"    value="<?php echo e($nombre); ?>"    class="input__text">
-      <input type="text" name="apellidos" value="<?php echo e($apellidos); ?>" class="input__text">
+      <form action="" method="post" enctype="multipart/form-data" class="row g-3">
+        <div class="col-md-6">
+          <label class="form-label">Nombre</label>
+          <input type="text" name="nombre" class="form-control" value="<?= e($old['nombre']) ?>" required>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">Apellidos</label>
+          <input type="text" name="apellidos" class="form-control" value="<?= e($old['apellidos']) ?>" required>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">Teléfono</label>
+          <input type="text" name="telefono" class="form-control" value="<?= e($old['telefono']) ?>" required>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">Ciudad</label>
+          <input type="text" name="ciudad" class="form-control" value="<?= e($old['ciudad']) ?>" required>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">Correo</label>
+          <input type="email" name="correo" class="form-control" value="<?= e($old['correo']) ?>" required>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">Placa / matrícula</label>
+          <input type="text" name="placa" class="form-control" value="<?= e($old['placa']) ?>">
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">Modelo</label>
+          <input type="text" name="modelo" class="form-control" value="<?= e($old['modelo']) ?>">
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">Color</label>
+          <input type="text" name="color" class="form-control" value="<?= e($old['color']) ?>">
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">Teléfono de contacto</label>
+          <input type="text" name="telefono_contacto" class="form-control" value="<?= e($old['telefono_contacto']) ?>">
+        </div>
+        <div class="col-12">
+          <label class="form-label">Notas / incidente</label>
+          <textarea name="notas_incidente" rows="3" class="form-control"><?= e($old['notas_incidente']) ?></textarea>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">Foto de la placa</label>
+          <input type="file" name="foto_placa" accept="image/*" class="form-control">
+          <div class="form-text">Si no subes nada, se mantiene la actual.</div>
+          <?php if (!empty($currentFoto)): ?>
+            <?php
+              $mime = 'image/jpeg';
+              if (function_exists('finfo_open')) {
+                $finfo = finfo_open(FILEINFO_MIME_TYPE);
+                $det = finfo_buffer($finfo, $currentFoto);
+                if ($det) $mime = $det;
+                finfo_close($finfo);
+              }
+            ?>
+            <div class="mt-2">
+              <span class="text-muted small">Actual:</span><br>
+              <img src="data:<?= $mime ?>;base64,<?= base64_encode($currentFoto) ?>" alt="Foto actual" class="thumb">
+            </div>
+          <?php endif; ?>
+        </div>
+        <div class="col-12 d-flex justify-content-end gap-2">
+          <a href="index.php" class="btn btn-outline-secondary">Cancelar</a>
+          <button type="submit" name="guardar" class="btn btn-primary">Guardar cambios</button>
+        </div>
+      </form>
     </div>
-    <div class="form-group">
-      <input type="text" name="telefono"  value="<?php echo e($telefono); ?>"  class="input__text">
-      <input type="text" name="ciudad"    value="<?php echo e($ciudad); ?>"    class="input__text">
-    </div>
-    <div class="form-group">
-      <input type="text" name="correo"    value="<?php echo e($correo); ?>"    class="input__text">
-    </div>
-    <div class="btn__group">
-      <a href="index.php" class="btn btn__danger">Cancelar</a>
-      <input type="submit" name="guardar" value="Guardar" class="btn btn__primary">
-    </div>
-  </form>
+  </div>
 </div>
-</body>
-</html>
+<?php render_footer(); ?>
