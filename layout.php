@@ -22,12 +22,12 @@ function render_header(string $title='Vehículos', string $active='list'){ ?>
 </style>
 </head><body>
 <nav class="navbar navbar-expand-lg bg-white shadow-sm"><div class="container">
-  <a class="navbar-brand fw-bold" href="index.php">COOPNAMA II — Vehículos</a>
+  <a class="navbar-brand fw-bold" href="/eo/automovilist/index.php">COOPNAMA II — Vehículos</a>
   <div class="ms-auto d-flex align-items-center gap-3 flex-wrap">
     <div class="nav nav-pills small">
-      <a class="nav-link <?php if ($active==='list'||$active==='new') echo 'active'; ?>" href="index.php">Vehículos</a>
-      <a class="nav-link" href="../contactos/index.php">Residentes</a>
-      <a class="nav-link" href="../contactos/visor.php">Visor</a>
+      <a class="nav-link <?php if ($active==='list'||$active==='new') echo 'active'; ?>" href="/eo/automovilist/index.php">Vehículos</a>
+      <a class="nav-link" href="/eo/coopnama/contactos/index.php">Residentes</a>
+      <a class="nav-link" href="/eo/coopnama/contactos/visor.php">Visor</a>
     </div>
     <?php if ($active !== 'new'): ?>
       <a href="insert.php" class="btn btn-primary btn-sm">Agregar</a>
