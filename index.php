@@ -80,105 +80,101 @@ render_header('Vehículos', 'list');
         </tr>
       </thead>
       <tbody>
-        <?php if (!$rows): ?>
-          <tr><td colspan="16" class="text-center text-muted py-4">Sin resultados.</td></tr>
-        <?php else: ?>
-          <?php foreach($rows as $row): ?>
-            <tr>
-              <td class="text-muted"><?= (int)$row['id'] ?></td>
-              <td><?= e($row['nombre']) ?></td>
-              <td><?= e($row['apellidos']) ?></td>
-              <td><?= e($row['telefono']) ?></td>
-              <td><?= e($row['ciudad']) ?></td>
-              <td><?= e($row['correo']) ?></td>
-              <td>
-                <?php if (!empty($row['codigo_inquilino'])): ?>
-                  <span class="badge text-bg-secondary"><?= e($row['codigo_inquilino']) ?></span>
-                <?php else: ?>
-                  <span class="text-muted">—</span>
-                <?php endif; ?>
-              </td>
-              <td><span class="badge text-bg-primary-subtle text-primary"><?= e($row['placa'] ?: '—') ?></span></td>
-              <td><?= e($row['modelo'] ?: '—') ?></td>
-              <td><?= e($row['color'] ?: '—') ?></td>
-              <td>
-                <?php if (!empty($row['foto_placa'])): ?>
-                  <?php
-                    $b64 = base64_encode($row['foto_placa']);
-                    $mime = 'image/jpeg';
-                    if (function_exists('finfo_open')) {
-                      $finfo = finfo_open(FILEINFO_MIME_TYPE);
-                      $det = finfo_buffer($finfo, $row['foto_placa']);
-                      if ($det) $mime = $det;
-                      finfo_close($finfo);
-                    }
-                  ?>
-                  <img src="data:<?= $mime ?>;base64,<?= $b64 ?>" alt="Foto placa" class="thumb">
-                <?php else: ?>
-                  <span class="text-muted">—</span>
-                <?php endif; ?>
-              </td>
-              <td>
-                <?php if (!empty($row['foto_cedula_frente'])): ?>
-                  <?php
-                    $b64f = base64_encode($row['foto_cedula_frente']);
-                    $mimef = 'image/jpeg';
-                    if (function_exists('finfo_open')) {
-                      $finfo = finfo_open(FILEINFO_MIME_TYPE);
-                      $det = finfo_buffer($finfo, $row['foto_cedula_frente']);
-                      if ($det) $mimef = $det;
-                      finfo_close($finfo);
-                    }
-                  ?>
-                  <img src="data:<?= $mimef ?>;base64,<?= $b64f ?>" alt="Cédula frente" class="thumb">
-                <?php else: ?>
-                  <span class="text-muted">—</span>
-                <?php endif; ?>
-              </td>
-              <td>
-                <?php if (!empty($row['foto_cedula_atras'])): ?>
-                  <?php
-                    $b64b = base64_encode($row['foto_cedula_atras']);
-                    $mimeb = 'image/jpeg';
-                    if (function_exists('finfo_open')) {
-                      $finfo = finfo_open(FILEINFO_MIME_TYPE);
-                      $det = finfo_buffer($finfo, $row['foto_cedula_atras']);
-                      if ($det) $mimeb = $det;
-                      finfo_close($finfo);
-                    }
-                  ?>
-                  <img src="data:<?= $mimeb ?>;base64,<?= $b64b ?>" alt="Cédula atrás" class="thumb">
-                <?php else: ?>
-                  <span class="text-muted">—</span>
-                <?php endif; ?>
-              </td>
-              <td>
-                <?php if (!empty($row['telefono_contacto'])): ?>
-                  <div><?= e($row['telefono_contacto']) ?></div>
-                <?php else: ?>
-                  <span class="text-muted">—</span>
-                <?php endif; ?>
-              </td>
-              <td class="text-break">
+        <?php foreach($rows as $row): ?>
+          <tr>
+            <td class="text-muted"><?= (int)$row['id'] ?></td>
+            <td><?= e($row['nombre']) ?></td>
+            <td><?= e($row['apellidos']) ?></td>
+            <td><?= e($row['telefono']) ?></td>
+            <td><?= e($row['ciudad']) ?></td>
+            <td><?= e($row['correo']) ?></td>
+            <td>
+              <?php if (!empty($row['codigo_inquilino'])): ?>
+                <span class="badge text-bg-secondary"><?= e($row['codigo_inquilino']) ?></span>
+              <?php else: ?>
+                <span class="text-muted">—</span>
+              <?php endif; ?>
+            </td>
+            <td><span class="badge text-bg-primary-subtle text-primary"><?= e($row['placa'] ?: '—') ?></span></td>
+            <td><?= e($row['modelo'] ?: '—') ?></td>
+            <td><?= e($row['color'] ?: '—') ?></td>
+            <td>
+              <?php if (!empty($row['foto_placa'])): ?>
                 <?php
-                  $nota = trim((string)$row['notas_incidente']);
-                  $notaCorta = strlen($nota) > 90 ? substr($nota, 0, 90) . '…' : $nota;
+                  $b64 = base64_encode($row['foto_placa']);
+                  $mime = 'image/jpeg';
+                  if (function_exists('finfo_open')) {
+                    $finfo = finfo_open(FILEINFO_MIME_TYPE);
+                    $det = finfo_buffer($finfo, $row['foto_placa']);
+                    if ($det) $mime = $det;
+                    finfo_close($finfo);
+                  }
                 ?>
-                <?php if ($nota !== ''): ?>
-                  <?= e($notaCorta) ?>
-                <?php else: ?>
-                  <span class="text-muted">—</span>
-                <?php endif; ?>
-              </td>
-              <td class="text-center">
-                <div class="d-inline-flex gap-2 actions">
-                  <a href="update.php?id=<?= (int)$row['id'] ?>" class="btn btn-sm btn-outline-primary">Editar</a>
-                  <a href="delete.php?id=<?= (int)$row['id'] ?>" class="btn btn-sm btn-outline-danger btn-delete">Eliminar</a>
-                </div>
-              </td>
-            </tr>
-          <?php endforeach; ?>
-        <?php endif; ?>
+                <img src="data:<?= $mime ?>;base64,<?= $b64 ?>" alt="Foto placa" class="thumb">
+              <?php else: ?>
+                <span class="text-muted">—</span>
+              <?php endif; ?>
+            </td>
+            <td>
+              <?php if (!empty($row['foto_cedula_frente'])): ?>
+                <?php
+                  $b64f = base64_encode($row['foto_cedula_frente']);
+                  $mimef = 'image/jpeg';
+                  if (function_exists('finfo_open')) {
+                    $finfo = finfo_open(FILEINFO_MIME_TYPE);
+                    $det = finfo_buffer($finfo, $row['foto_cedula_frente']);
+                    if ($det) $mimef = $det;
+                    finfo_close($finfo);
+                  }
+                ?>
+                <img src="data:<?= $mimef ?>;base64,<?= $b64f ?>" alt="Cédula frente" class="thumb">
+              <?php else: ?>
+                <span class="text-muted">—</span>
+              <?php endif; ?>
+            </td>
+            <td>
+              <?php if (!empty($row['foto_cedula_atras'])): ?>
+                <?php
+                  $b64b = base64_encode($row['foto_cedula_atras']);
+                  $mimeb = 'image/jpeg';
+                  if (function_exists('finfo_open')) {
+                    $finfo = finfo_open(FILEINFO_MIME_TYPE);
+                    $det = finfo_buffer($finfo, $row['foto_cedula_atras']);
+                    if ($det) $mimeb = $det;
+                    finfo_close($finfo);
+                  }
+                ?>
+                <img src="data:<?= $mimeb ?>;base64,<?= $b64b ?>" alt="Cédula atrás" class="thumb">
+              <?php else: ?>
+                <span class="text-muted">—</span>
+              <?php endif; ?>
+            </td>
+            <td>
+              <?php if (!empty($row['telefono_contacto'])): ?>
+                <div><?= e($row['telefono_contacto']) ?></div>
+              <?php else: ?>
+                <span class="text-muted">—</span>
+              <?php endif; ?>
+            </td>
+            <td class="text-break">
+              <?php
+                $nota = trim((string)$row['notas_incidente']);
+                $notaCorta = strlen($nota) > 90 ? substr($nota, 0, 90) . '…' : $nota;
+              ?>
+              <?php if ($nota !== ''): ?>
+                <?= e($notaCorta) ?>
+              <?php else: ?>
+                <span class="text-muted">—</span>
+              <?php endif; ?>
+            </td>
+            <td class="text-center">
+              <div class="d-inline-flex gap-2 actions">
+                <a href="update.php?id=<?= (int)$row['id'] ?>" class="btn btn-sm btn-outline-primary">Editar</a>
+                <a href="delete.php?id=<?= (int)$row['id'] ?>" class="btn btn-sm btn-outline-danger btn-delete">Eliminar</a>
+              </div>
+            </td>
+          </tr>
+        <?php endforeach; ?>
       </tbody>
     </table>
   </div>
