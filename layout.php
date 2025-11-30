@@ -76,9 +76,6 @@ function render_header(string $title='Vehículos', string $active='list'){
 
 <nav class="sidebar">
   <div class="section-title">Propietarios</div>
-  <a class="menu-item" href="/eo/coopnama/contactos/index.php?action=new">
-    <i class="bi bi-person-plus"></i><span>Registrar residente</span>
-  </a>
   <a class="menu-item" href="/eo/coopnama/contactos/visor.php?action=full">
     <i class="bi bi-card-checklist"></i><span>Registro</span>
   </a>
