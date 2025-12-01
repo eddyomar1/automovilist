@@ -4,10 +4,8 @@ require __DIR__ . '/init.php';
 $errors = [];
 $exito = false;
 $old = [
-  'reportado_por' => '',
-  'contacto'      => '',
-  'asunto'        => '',
-  'detalle'       => ''
+  'asunto'  => '',
+  'detalle' => ''
 ];
 
 function procesar_captura(string $field, array &$errors): array{
@@ -39,13 +37,11 @@ function procesar_captura(string $field, array &$errors): array{
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-  $old['reportado_por'] = body('reportado_por');
-  $old['contacto']      = body('contacto');
-  $old['asunto']        = body('asunto');
-  $old['detalle']       = body('detalle');
+  $old['asunto']  = body('asunto');
+  $old['detalle'] = body('detalle');
 
-  if ($old['reportado_por'] === '' || $old['asunto'] === '' || $old['detalle'] === '') {
-    $errors[] = "Nombre, asunto y descripción son obligatorios.";
+  if ($old['asunto'] === '' || $old['detalle'] === '') {
+    $errors[] = "Asunto y descripción son obligatorios.";
   }
 
   [$captura, $capturaNombre, $capturaMime] = procesar_captura('captura', $errors);
@@ -59,8 +55,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } else {
       $stmt->bind_param(
         'sssssss',
-        $old['reportado_por'],
-        $old['contacto'] ?: null,
+        'No indicado',
+        null,
         $old['asunto'],
         $old['detalle'],
         $captura,
@@ -72,7 +68,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $errors[] = 'No se pudo guardar el reporte: ' . $stmt->error;
       } else {
         $exito = true;
-        $old = ['reportado_por'=>'', 'contacto'=>'', 'asunto'=>'', 'detalle'=>''];
+        $old = ['asunto'=>'', 'detalle'=>''];
       }
     }
   }
@@ -106,14 +102,6 @@ render_header('Reportar inconveniente', 'report');
       <?php endif; ?>
 
       <form action="" method="post" enctype="multipart/form-data" class="row g-3">
-        <div class="col-md-6">
-          <label class="form-label">¿Quién reporta?</label>
-          <input type="text" name="reportado_por" class="form-control" value="<?= e($old['reportado_por']) ?>" required>
-        </div>
-        <div class="col-md-6">
-          <label class="form-label">Contacto (teléfono o correo)</label>
-          <input type="text" name="contacto" class="form-control" value="<?= e($old['contacto']) ?>" placeholder="Opcional">
-        </div>
         <div class="col-12">
           <label class="form-label">Asunto</label>
           <input type="text" name="asunto" class="form-control" value="<?= e($old['asunto']) ?>" required>
