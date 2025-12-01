@@ -35,7 +35,6 @@ render_header('Reportes de soporte', 'developer');
         <tr>
           <th>ID</th>
           <th>Fecha</th>
-          <th>Reportado por</th>
           <th>Asunto / detalle</th>
           <th>Adjunto</th>
         </tr>
@@ -45,10 +44,7 @@ render_header('Reportes de soporte', 'developer');
           <tr>
             <td class="text-muted"><?= (int)$row['id'] ?></td>
             <td><?= e(date('d/m/Y H:i', strtotime($row['created_at']))) ?></td>
-            <td>
-              <div class="fw-semibold"><?= e($row['reportado_por']) ?></div>
-              <div class="text-muted small"><?= e($row['contacto'] ?: 'Sin contacto') ?></div>
-            </td>
+            
             <td class="text-break" style="max-width:520px">
               <div class="fw-semibold mb-1"><?= e($row['asunto']) ?></div>
               <div class="small text-muted" style="white-space:pre-line;"><?= e($row['detalle']) ?></div>
@@ -76,11 +72,11 @@ render_header('Reportes de soporte', 'developer');
             </td>
           </tr>
         <?php endforeach; ?>
-        <?php if (!$reports): ?>
-          <tr><td colspan="5" class="text-center text-muted">Sin reportes aún.</td></tr>
-        <?php endif; ?>
       </tbody>
     </table>
+    <?php if (!$reports): ?>
+      <div class="text-center text-muted py-3">Sin reportes aún.</div>
+    <?php endif; ?>
   </div>
 </div>
 <?php render_footer(); ?>
