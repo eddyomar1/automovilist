@@ -53,10 +53,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!$stmt) {
       $errors[] = 'No se pudo preparar el guardado: ' . $con->error;
     } else {
+      // bind_param exige variables por referencia (no se pueden pasar literales)
+      $reportadoPor = 'No indicado';
+      $contacto = null;
       $stmt->bind_param(
         'sssssss',
-        'No indicado',
-        null,
+        $reportadoPor,
+        $contacto,
         $old['asunto'],
         $old['detalle'],
         $captura,
