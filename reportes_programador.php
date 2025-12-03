@@ -2,10 +2,21 @@
 require __DIR__ . '/init.php';
 
 const DEV_ACCESS_KEY = 'coopnama-dev';
-$providedKey = isset($_GET['clave']) ? trim((string)$_GET['clave']) : '';
+$providedKey = isset($_POST['clave']) ? trim((string)$_POST['clave']) : (isset($_GET['clave']) ? trim((string)$_GET['clave']) : '');
 if ($providedKey !== DEV_ACCESS_KEY) {
   http_response_code(404);
   exit('Página no encontrada');
+}
+
+$flash = [];
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_id'])) {
+  $deleteId = (int)$_POST['delete_id'];
+  $stmt = $con->prepare("DELETE FROM reportes_soporte WHERE id=?");
+  if ($stmt && $stmt->bind_param('i', $deleteId) && $stmt->execute()) {
+    $flash[] = "Reporte #{$deleteId} eliminado.";
+  } else {
+    $flash[] = 'No se pudo borrar el reporte: ' . ($stmt ? $stmt->error : $con->error);
+  }
 }
 
 $reports = [];
@@ -29,6 +40,14 @@ render_header('Reportes de soporte', 'developer');
     </div>
   </div>
 
+  <?php if ($flash): ?>
+    <div class="alert alert-info">
+      <?php foreach($flash as $msg): ?>
+        <div><?= e($msg) ?></div>
+      <?php endforeach; ?>
+    </div>
+  <?php endif; ?>
+
   <div class="table-responsive">
     <table class="table table-hover align-middle table-nowrap" id="tabla">
       <thead class="table-light">
@@ -37,6 +56,7 @@ render_header('Reportes de soporte', 'developer');
           <th>Fecha</th>
           <th>Asunto / detalle</th>
           <th>Adjunto</th>
+          <th class="text-end">Acciones</th>
         </tr>
       </thead>
       <tbody>
@@ -69,6 +89,16 @@ render_header('Reportes de soporte', 'developer');
               <?php else: ?>
                 <span class="text-muted">—</span>
               <?php endif; ?>
+            </td>
+            <td class="text-end">
+              <div class="d-flex gap-2 justify-content-end">
+                <a class="btn btn-sm btn-outline-secondary" href="reporte_inconveniente.php?id=<?= (int)$row['id'] ?>&clave=<?= e(DEV_ACCESS_KEY) ?>">Editar</a>
+                <form method="post" onsubmit="return confirm('¿Borrar el reporte #<?= (int)$row['id'] ?>?');" class="d-inline">
+                  <input type="hidden" name="clave" value="<?= e(DEV_ACCESS_KEY) ?>">
+                  <input type="hidden" name="delete_id" value="<?= (int)$row['id'] ?>">
+                  <button type="submit" class="btn btn-sm btn-danger">Borrar</button>
+                </form>
+              </div>
             </td>
           </tr>
         <?php endforeach; ?>
