@@ -6,6 +6,8 @@ function render_header(string $title='Vehículos', string $active='list'){
   $isVehList = ($action === 'list');
   $isVehNew  = ($action === 'new');
   $isSupport = ($action === 'report');
+  $isInq     = ($action === 'inq');
+  $isPortero = ($action === 'portero');
 ?>
 <!doctype html><html lang="es"><head>
 <meta charset="utf-8">
@@ -99,6 +101,15 @@ function render_header(string $title='Vehículos', string $active='list'){
   </a>
   <a class="menu-item <?= $isVehNew?'active':'' ?>" href="/eo/automovilist/insert.php">
     <i class="bi bi-plus-square"></i><span>Registrar vehículo</span>
+  </a>
+
+  <hr>
+  <div class="section-title">Portería</div>
+  <a class="menu-item <?= $isInq?'active':'' ?>" href="/eo/automovilist/inquilinos_porteria.php">
+    <i class="bi bi-people-fill"></i><span>Inquilinos actuales</span>
+  </a>
+  <a class="menu-item <?= $isPortero?'active':'' ?>" href="/eo/automovilist/control_visitas.php">
+    <i class="bi bi-shield-lock"></i><span>Control de visitas</span>
   </a>
 
   <hr>
