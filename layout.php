@@ -87,13 +87,15 @@ function render_header(string $title='Vehículos', string $active='list'){
   </a>
 
   <hr>
-  <div class="section-title">Portería (admin)</div>
-  <a class="menu-item <?= $isInq?'active':'' ?>" href="/eo/automovilist/control_visitas.php">
-    <i class="bi bi-journal-check"></i><span>Gestionar inquilinos</span>
-  </a>
-  <a class="menu-item <?= $isPortero?'active':'' ?>" href="/eo/automovilist/inquilinos_porteria.php">
-    <i class="bi bi-people"></i><span>Ver visitas</span>
-  </a>
+  <?php if ($isInq || $isPortero): ?>
+    <div class="section-title">Portería (admin)</div>
+    <a class="menu-item <?= $isInq?'active':'' ?>" href="/eo/automovilist/control_visitas.php">
+      <i class="bi bi-journal-check"></i><span>Gestionar inquilinos</span>
+    </a>
+    <a class="menu-item <?= $isPortero?'active':'' ?>" href="/eo/automovilist/inquilinos_porteria.php">
+      <i class="bi bi-people"></i><span>Ver visitas</span>
+    </a>
+  <?php endif; ?>
 </nav>
 
 <main class="content">
