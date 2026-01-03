@@ -105,10 +105,10 @@ function render_header(string $title='Vehículos', string $active='list'){
 
   <hr>
   <div class="section-title">Portería</div>
-  <a class="menu-item <?= $isInq?'active':'' ?>" href="/eo/automovilist/inquilinos_porteria.php">
+  <a class="menu-item <?= $isInq?'active':'' ?>" href="/eo/automovilist/control_visitas.php">
     <i class="bi bi-people-fill"></i><span>Inquilinos actuales</span>
   </a>
-  <a class="menu-item <?= $isPortero?'active':'' ?>" href="/eo/automovilist/control_visitas.php">
+  <a class="menu-item <?= $isPortero?'active':'' ?>" href="/eo/automovilist/inquilinos_porteria.php">
     <i class="bi bi-shield-lock"></i><span>Control de visitas</span>
   </a>
 
