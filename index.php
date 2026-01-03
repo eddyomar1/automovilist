@@ -1,22 +1,23 @@
 <?php
 require __DIR__ . '/init.php';
 
+// Tabla de inquilinos (crea si falta)
+$con->query("CREATE TABLE IF NOT EXISTS inquilinos_porteria (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  nombre VARCHAR(180) NOT NULL,
+  apartamento VARCHAR(60) NOT NULL,
+  telefono VARCHAR(60) NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+
 $buscar = body('buscar', '');
 $rows   = [];
+$baseSql = "SELECT id, nombre, apartamento, telefono, created_at FROM inquilinos_porteria";
 
-$baseSql = "SELECT id, nombre, apellidos, telefono, ciudad, correo, codigo_inquilino, placa, modelo, color, telefono_contacto, notas_incidente, foto_placa, foto_cedula_frente, foto_cedula_atras FROM clientes";
 if ($buscar !== '') {
   $like = "%{$buscar}%";
-  $sql  = $baseSql . " WHERE (nombre LIKE ? OR apellidos LIKE ? OR telefono LIKE ? OR ciudad LIKE ? OR correo LIKE ? OR codigo_inquilino LIKE ? OR placa LIKE ? OR modelo LIKE ? OR color LIKE ? OR telefono_contacto LIKE ? OR notas_incidente LIKE ?)
-                      ORDER BY id DESC";
-  $stmt = $con->prepare($sql);
-  if ($stmt) {
-    $stmt->bind_param(
-      'sssssssssss',
-      $like, $like, $like, $like, $like, $like,
-      $like, $like, $like, $like, $like
-    );
-    $stmt->execute();
+  $stmt = $con->prepare($baseSql . " WHERE (nombre LIKE ? OR apartamento LIKE ? OR telefono LIKE ?) ORDER BY id DESC");
+  if ($stmt && $stmt->bind_param('sss', $like, $like, $like) && $stmt->execute()) {
     $res = $stmt->get_result();
   }
 } else {
@@ -27,19 +28,19 @@ if (!empty($res)) {
   while ($row = $res->fetch_assoc()) { $rows[] = $row; }
 }
 
-render_header('Vehículos', 'list');
+render_header('Inquilinos actuales', 'list');
 ?>
 <div class="card p-3 p-md-4">
   <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 mb-3">
     <div>
-      <h1 class="fw-bold mb-1">Vehículos registrados</h1>
-      <p class="text-muted mb-0">Control de residentes, autos y placas.</p>
+      <h1 class="fw-bold mb-1">Inquilinos actuales</h1>
+      <p class="text-muted mb-0">Seleccione un registro para documentar una visita (cédula y placa del vehículo).</p>
     </div>
     <form class="d-flex flex-column flex-md-row align-items-md-center gap-2" method="post">
       <label class="form-label d-flex align-items-center gap-2 mb-0">
         <span class="muted">Mostrar</span>
         <select id="lenSelect" class="form-select form-select-sm w-auto">
-          <option>5</option><option selected>10</option><option>25</option><option>50</option><option>100</option>
+          <option>5</option><option>10</option><option>25</option><option>50</option><option selected>100</option>
         </select>
       </label>
       <div class="input-group input-group-sm">
@@ -52,7 +53,7 @@ render_header('Vehículos', 'list');
       </div>
       <div class="d-flex gap-2">
         <button class="btn btn-outline-secondary btn-sm" type="submit" name="btn_buscar">Buscar</button>
-        <a href="insert.php" class="btn btn-primary btn-sm">Nuevo</a>
+        <a href="inquilinos_porteria.php" class="btn btn-primary btn-sm">Gestionar inquilinos</a>
       </div>
     </form>
   </div>
@@ -61,117 +62,22 @@ render_header('Vehículos', 'list');
     <table class="table table-hover align-middle table-nowrap" id="tabla">
       <thead class="table-light">
         <tr>
-          <th>ID</th>
           <th>Nombre</th>
-          <th>Apellidos</th>
+          <th>Apartamento</th>
           <th>Teléfono</th>
-          <th>Ciudad</th>
-          <th>Correo</th>
-          <th>Cód.</th>
-          <th>Placa</th>
-          <th>Modelo</th>
-          <th>Color</th>
-          <th>Foto</th>
-          <th>Cédula (frente)</th>
-          <th>Cédula (atrás)</th>
-          <th>Contacto</th>
-          <th>Notas</th>
-          <th class="text-center">Acciones</th>
+          <th>Creado</th>
+          <th class="text-center">Registrar visita</th>
         </tr>
       </thead>
       <tbody>
         <?php foreach($rows as $row): ?>
           <tr>
-            <td class="text-muted"><?= (int)$row['id'] ?></td>
             <td><?= e($row['nombre']) ?></td>
-            <td><?= e($row['apellidos']) ?></td>
+            <td><?= e($row['apartamento']) ?></td>
             <td><?= e($row['telefono']) ?></td>
-            <td><?= e($row['ciudad']) ?></td>
-            <td><?= e($row['correo']) ?></td>
-            <td>
-              <?php if (!empty($row['codigo_inquilino'])): ?>
-                <span class="badge text-bg-secondary"><?= e($row['codigo_inquilino']) ?></span>
-              <?php else: ?>
-                <span class="text-muted">—</span>
-              <?php endif; ?>
-            </td>
-            <td><span class="badge text-bg-primary-subtle text-primary"><?= e($row['placa'] ?: '—') ?></span></td>
-            <td><?= e($row['modelo'] ?: '—') ?></td>
-            <td><?= e($row['color'] ?: '—') ?></td>
-            <td>
-              <?php if (!empty($row['foto_placa'])): ?>
-                <?php
-                  $b64 = base64_encode($row['foto_placa']);
-                  $mime = 'image/jpeg';
-                  if (function_exists('finfo_open')) {
-                    $finfo = finfo_open(FILEINFO_MIME_TYPE);
-                    $det = finfo_buffer($finfo, $row['foto_placa']);
-                    if ($det) $mime = $det;
-                    finfo_close($finfo);
-                  }
-                ?>
-                <img src="data:<?= $mime ?>;base64,<?= $b64 ?>" alt="Foto placa" class="thumb">
-              <?php else: ?>
-                <span class="text-muted">—</span>
-              <?php endif; ?>
-            </td>
-            <td>
-              <?php if (!empty($row['foto_cedula_frente'])): ?>
-                <?php
-                  $b64f = base64_encode($row['foto_cedula_frente']);
-                  $mimef = 'image/jpeg';
-                  if (function_exists('finfo_open')) {
-                    $finfo = finfo_open(FILEINFO_MIME_TYPE);
-                    $det = finfo_buffer($finfo, $row['foto_cedula_frente']);
-                    if ($det) $mimef = $det;
-                    finfo_close($finfo);
-                  }
-                ?>
-                <img src="data:<?= $mimef ?>;base64,<?= $b64f ?>" alt="Cédula frente" class="thumb">
-              <?php else: ?>
-                <span class="text-muted">—</span>
-              <?php endif; ?>
-            </td>
-            <td>
-              <?php if (!empty($row['foto_cedula_atras'])): ?>
-                <?php
-                  $b64b = base64_encode($row['foto_cedula_atras']);
-                  $mimeb = 'image/jpeg';
-                  if (function_exists('finfo_open')) {
-                    $finfo = finfo_open(FILEINFO_MIME_TYPE);
-                    $det = finfo_buffer($finfo, $row['foto_cedula_atras']);
-                    if ($det) $mimeb = $det;
-                    finfo_close($finfo);
-                  }
-                ?>
-                <img src="data:<?= $mimeb ?>;base64,<?= $b64b ?>" alt="Cédula atrás" class="thumb">
-              <?php else: ?>
-                <span class="text-muted">—</span>
-              <?php endif; ?>
-            </td>
-            <td>
-              <?php if (!empty($row['telefono_contacto'])): ?>
-                <div><?= e($row['telefono_contacto']) ?></div>
-              <?php else: ?>
-                <span class="text-muted">—</span>
-              <?php endif; ?>
-            </td>
-            <td class="text-break">
-              <?php
-                $nota = trim((string)$row['notas_incidente']);
-                $notaCorta = strlen($nota) > 90 ? substr($nota, 0, 90) . '…' : $nota;
-              ?>
-              <?php if ($nota !== ''): ?>
-                <?= e($notaCorta) ?>
-              <?php else: ?>
-                <span class="text-muted">—</span>
-              <?php endif; ?>
-            </td>
+            <td class="text-muted"><?= e($row['created_at']) ?></td>
             <td class="text-center">
-              <div class="d-inline-flex gap-2 actions">
-                <a href="update.php?id=<?= (int)$row['id'] ?>" class="btn btn-sm btn-outline-primary">Editar</a>
-                <a href="delete.php?id=<?= (int)$row['id'] ?>" class="btn btn-sm btn-outline-danger btn-delete">Eliminar</a>
-              </div>
+              <a class="btn btn-primary btn-sm" href="insert.php?inq=<?= (int)$row['id'] ?>">Registrar visita</a>
             </td>
           </tr>
         <?php endforeach; ?>
