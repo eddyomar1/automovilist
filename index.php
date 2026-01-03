@@ -53,7 +53,7 @@ render_header('Inquilinos actuales', 'list');
       </div>
       <div class="d-flex gap-2">
         <button class="btn btn-outline-secondary btn-sm" type="submit" name="btn_buscar">Buscar</button>
-        <a href="inquilinos_porteria.php" class="btn btn-primary btn-sm">Gestionar inquilinos</a>
+        <a href="inquilinos_porteria.php?admin=1" class="btn btn-primary btn-sm">Gestionar inquilinos</a>
       </div>
     </form>
   </div>

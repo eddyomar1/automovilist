@@ -8,6 +8,7 @@ function render_header(string $title='Vehículos', string $active='list'){
   $isSupport = ($action === 'report');
   $isInq     = ($action === 'inq');
   $isPortero = ($action === 'portero');
+  $showAdmin = isset($_GET['admin']) || isset($_POST['admin']);
 ?>
 <!doctype html><html lang="es"><head>
 <meta charset="utf-8">
@@ -87,12 +88,12 @@ function render_header(string $title='Vehículos', string $active='list'){
   </a>
 
   <hr>
-  <?php if ($isInq || $isPortero): ?>
+  <?php if ($showAdmin): ?>
     <div class="section-title">Portería (admin)</div>
-    <a class="menu-item <?= $isInq?'active':'' ?>" href="/eo/automovilist/control_visitas.php">
+    <a class="menu-item <?= $isInq?'active':'' ?>" href="/eo/automovilist/control_visitas.php?admin=1">
       <i class="bi bi-journal-check"></i><span>Gestionar inquilinos</span>
     </a>
-    <a class="menu-item <?= $isPortero?'active':'' ?>" href="/eo/automovilist/inquilinos_porteria.php">
+    <a class="menu-item <?= $isPortero?'active':'' ?>" href="/eo/automovilist/inquilinos_porteria.php?admin=1">
       <i class="bi bi-people"></i><span>Ver visitas</span>
     </a>
   <?php endif; ?>
