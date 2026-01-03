@@ -186,8 +186,9 @@ render_header('Control de visitas','portero');
                           if ($det) $mimeC = $det;
                           finfo_close($finfo);
                         }
+                        $hrefC = "data:{$mimeC};base64,".base64_encode($v['foto_cedula']);
                       ?>
-                      <a class="btn btn-outline-secondary btn-sm" href="data:<?= $mimeC ?>;base64,<?= base64_encode($v['foto_cedula']) ?>" download="cedula_<?= (int)$v['id'] ?>.jpg" target="_blank">Ver/descargar</a>
+                      <button type="button" class="btn btn-outline-secondary btn-sm view-img" data-img="<?= e($hrefC) ?>" data-title="Cédula visita #<?= (int)$v['id'] ?>">Ver</button>
                     <?php else: ?>
                       <span class="text-muted">—</span>
                     <?php endif; ?>
@@ -202,8 +203,9 @@ render_header('Control de visitas','portero');
                           if ($det) $mimeP = $det;
                           finfo_close($finfo);
                         }
+                        $hrefP = "data:{$mimeP};base64,".base64_encode($v['foto_placa']);
                       ?>
-                      <a class="btn btn-outline-secondary btn-sm" href="data:<?= $mimeP ?>;base64,<?= base64_encode($v['foto_placa']) ?>" download="placa_<?= (int)$v['id'] ?>.jpg" target="_blank">Ver/descargar</a>
+                      <button type="button" class="btn btn-outline-secondary btn-sm view-img" data-img="<?= e($hrefP) ?>" data-title="Placa visita #<?= (int)$v['id'] ?>">Ver</button>
                     <?php else: ?>
                       <span class="text-muted">—</span>
                     <?php endif; ?>
@@ -220,4 +222,34 @@ render_header('Control de visitas','portero');
     </div>
   </div>
 </div>
+<!-- Modal para ver imágenes -->
+<div class="modal fade" id="imgModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="imgModalLabel">Imagen</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body text-center">
+        <img src="" alt="Imagen" id="imgModalSrc" class="img-fluid rounded">
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+document.addEventListener('click', function(e){
+  var btn = e.target.closest('.view-img');
+  if(!btn) return;
+  var src = btn.getAttribute('data-img');
+  var title = btn.getAttribute('data-title') || 'Imagen';
+  var img = document.getElementById('imgModalSrc');
+  var label = document.getElementById('imgModalLabel');
+  if(img && label){
+    img.src = src;
+    label.textContent = title;
+    var modal = new bootstrap.Modal(document.getElementById('imgModal'));
+    modal.show();
+  }
+});
+</script>
 <?php render_footer(); ?>
