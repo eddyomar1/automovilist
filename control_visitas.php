@@ -161,6 +161,8 @@ render_header('Control de visitas','portero');
                 <th>Residente</th>
                 <th>Apartamento</th>
                 <th>Teléfono</th>
+                <th>Cédula</th>
+                <th>Placa</th>
                 <th>Nota</th>
               </tr>
             </thead>
@@ -172,6 +174,38 @@ render_header('Control de visitas','portero');
                   <td><?= e($v['inq_nombre']) ?></td>
                   <td><?= e($v['apartamento']) ?></td>
                   <td><?= e($v['inq_tel']) ?></td>
+                  <td>
+                    <?php if (!empty($v['foto_cedula'])): ?>
+                      <?php
+                        $mimeC = 'image/jpeg';
+                        if (function_exists('finfo_open')) {
+                          $finfo = finfo_open(FILEINFO_MIME_TYPE);
+                          $det = finfo_buffer($finfo, $v['foto_cedula']);
+                          if ($det) $mimeC = $det;
+                          finfo_close($finfo);
+                        }
+                      ?>
+                      <a class="btn btn-outline-secondary btn-sm" href="data:<?= $mimeC ?>;base64,<?= base64_encode($v['foto_cedula']) ?>" download="cedula_<?= (int)$v['id'] ?>.jpg">Ver/descargar</a>
+                    <?php else: ?>
+                      <span class="text-muted">—</span>
+                    <?php endif; ?>
+                  </td>
+                  <td>
+                    <?php if (!empty($v['foto_placa'])): ?>
+                      <?php
+                        $mimeP = 'image/jpeg';
+                        if (function_exists('finfo_open')) {
+                          $finfo = finfo_open(FILEINFO_MIME_TYPE);
+                          $det = finfo_buffer($finfo, $v['foto_placa']);
+                          if ($det) $mimeP = $det;
+                          finfo_close($finfo);
+                        }
+                      ?>
+                      <a class="btn btn-outline-secondary btn-sm" href="data:<?= $mimeP ?>;base64,<?= base64_encode($v['foto_placa']) ?>" download="placa_<?= (int)$v['id'] ?>.jpg">Ver/descargar</a>
+                    <?php else: ?>
+                      <span class="text-muted">—</span>
+                    <?php endif; ?>
+                  </td>
                   <td><?= e($v['nota']) ?></td>
                 </tr>
               <?php endforeach; ?>
