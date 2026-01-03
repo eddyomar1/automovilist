@@ -77,7 +77,7 @@ render_header('Inquilinos actuales', 'list');
             <td><?= e($row['telefono']) ?></td>
             <td class="text-muted"><?= e($row['created_at']) ?></td>
             <td class="text-center">
-              <a class="btn btn-primary btn-sm" href="insert.php?inq=<?= (int)$row['id'] ?>">Registrar visita</a>
+              <a class="btn btn-primary btn-sm" href="insert.php?inq=<?= (int)$row['id'] ?>&visit=1">Registrar visita</a>
             </td>
           </tr>
         <?php endforeach; ?>

@@ -8,6 +8,8 @@ function render_header(string $title='Vehículos', string $active='list'){
   $isSupport = ($action === 'report');
   $isInq     = ($action === 'inq');
   $isPortero = ($action === 'portero');
+  $showRegistrar = isset($_GET['visit']) || isset($_POST['visit']) || isset($_GET['inq']);
+  $showAdmin = isset($_GET['admin']) || isset($_POST['admin']);
   $showAdmin = isset($_GET['admin']) || isset($_POST['admin']);
 ?>
 <!doctype html><html lang="es"><head>
@@ -83,18 +85,20 @@ function render_header(string $title='Vehículos', string $active='list'){
   <a class="menu-item <?= $isVehList?'active':'' ?>" href="/eo/automovilist/index.php">
     <i class="bi bi-people-fill"></i><span>Inquilinos</span>
   </a>
-  <a class="menu-item <?= $isVehNew?'active':'' ?>" href="/eo/automovilist/insert.php">
-    <i class="bi bi-camera"></i><span>Registrar visita</span>
+  <?php if ($showRegistrar): ?>
+    <a class="menu-item <?= $isVehNew?'active':'' ?>" href="/eo/automovilist/insert.php<?= isset($_GET['inq']) ? '?inq='.(int)$_GET['inq'] : '' ?>">
+      <i class="bi bi-camera"></i><span>Registrar visita</span>
+    </a>
+  <?php endif; ?>
+  <a class="menu-item <?= $isPortero?'active':'' ?>" href="/eo/automovilist/inquilinos_porteria.php">
+    <i class="bi bi-people"></i><span>Ver visitas</span>
   </a>
 
-  <hr>
   <?php if ($showAdmin): ?>
+    <hr>
     <div class="section-title">Portería (admin)</div>
     <a class="menu-item <?= $isInq?'active':'' ?>" href="/eo/automovilist/control_visitas.php?admin=1">
       <i class="bi bi-journal-check"></i><span>Gestionar inquilinos</span>
-    </a>
-    <a class="menu-item <?= $isPortero?'active':'' ?>" href="/eo/automovilist/inquilinos_porteria.php?admin=1">
-      <i class="bi bi-people"></i><span>Ver visitas</span>
     </a>
   <?php endif; ?>
 </nav>
