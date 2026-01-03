@@ -78,21 +78,21 @@ function render_header(string $title='Vehículos', string $active='list'){
 </header>
 
 <nav class="sidebar">
-  <div class="section-title">Vehículos</div>
+  <div class="section-title">Visitas / Vehículos</div>
   <a class="menu-item <?= $isVehList?'active':'' ?>" href="/eo/automovilist/index.php">
-    <i class="bi bi-car-front"></i><span>Listado de vehículos</span>
+    <i class="bi bi-people-fill"></i><span>Inquilinos / visitas</span>
   </a>
   <a class="menu-item <?= $isVehNew?'active':'' ?>" href="/eo/automovilist/insert.php">
-    <i class="bi bi-plus-square"></i><span>Registrar vehículo</span>
+    <i class="bi bi-camera"></i><span>Registrar visita</span>
   </a>
 
   <hr>
-  <div class="section-title">Portería</div>
+  <div class="section-title">Portería (admin)</div>
   <a class="menu-item <?= $isInq?'active':'' ?>" href="/eo/automovilist/control_visitas.php">
-    <i class="bi bi-people-fill"></i><span>Inquilinos actuales</span>
+    <i class="bi bi-journal-check"></i><span>Ver visitas</span>
   </a>
   <a class="menu-item <?= $isPortero?'active':'' ?>" href="/eo/automovilist/inquilinos_porteria.php">
-    <i class="bi bi-shield-lock"></i><span>Control de visitas</span>
+    <i class="bi bi-people"></i><span>Gestionar inquilinos</span>
   </a>
 </nav>
 
