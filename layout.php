@@ -90,7 +90,7 @@ function render_header(string $title='Vehículos', string $active='list'){
       <i class="bi bi-camera"></i><span>Registrar visita</span>
     </a>
   <?php endif; ?>
-  <a class="menu-item <?= $isPortero?'active':'' ?>" href="/eo/automovilist/inquilinos_porteria.php">
+  <a class="menu-item <?= $isPortero?'active':'' ?>" href="/eo/automovilist/control_visitas.php">
     <i class="bi bi-people"></i><span>Ver visitas</span>
   </a>
 
