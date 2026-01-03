@@ -141,5 +141,47 @@ render_header('Control de visitas','portero');
   <?php else: ?>
     <div class="alert alert-info">Busca un residente para registrar una visita.</div>
   <?php endif; ?>
+
+  <hr class="my-4">
+  <div class="card">
+    <div class="card-body">
+      <h5 class="mb-3">Visitas registradas</h5>
+      <?php
+        $visitas = [];
+        $resVis = $con->query("SELECT v.*, i.nombre AS inq_nombre, i.apartamento, i.telefono AS inq_tel FROM visitas_porteria v LEFT JOIN inquilinos_porteria i ON i.id = v.inquilino_id ORDER BY v.fecha DESC");
+        if ($resVis) { while($r = $resVis->fetch_assoc()) $visitas[] = $r; }
+      ?>
+      <?php if($visitas): ?>
+        <div class="table-responsive">
+          <table class="table table-hover align-middle">
+            <thead class="table-light">
+              <tr>
+                <th>Fecha</th>
+                <th>Visitante</th>
+                <th>Residente</th>
+                <th>Apartamento</th>
+                <th>Teléfono</th>
+                <th>Nota</th>
+              </tr>
+            </thead>
+            <tbody>
+              <?php foreach($visitas as $v): ?>
+                <tr>
+                  <td><?= e($v['fecha']) ?></td>
+                  <td><?= e($v['visitante'] ?: 'No indicado') ?></td>
+                  <td><?= e($v['inq_nombre']) ?></td>
+                  <td><?= e($v['apartamento']) ?></td>
+                  <td><?= e($v['inq_tel']) ?></td>
+                  <td><?= e($v['nota']) ?></td>
+                </tr>
+              <?php endforeach; ?>
+            </tbody>
+          </table>
+        </div>
+      <?php else: ?>
+        <div class="text-muted">Aún no hay visitas registradas.</div>
+      <?php endif; ?>
+    </div>
+  </div>
 </div>
 <?php render_footer(); ?>
