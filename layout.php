@@ -78,23 +78,6 @@ function render_header(string $title='Vehículos', string $active='list'){
 </header>
 
 <nav class="sidebar">
-  <div class="section-title">Propietarios</div>
-  <a class="menu-item" href="/eo/coopnama/contactos/visor.php?action=full">
-    <i class="bi bi-card-checklist"></i><span>Registro</span>
-  </a>
-
-  <hr>
-
-  <div class="section-title">Deudores</div>
-  <a class="menu-item" href="/eo/coopnama/contactos/index.php?page=residentes">
-    <i class="bi bi-people"></i><span>Pagos</span>
-  </a>
-  <a class="menu-item" href="/eo/coopnama/contactos/index.php?page=pagos">
-    <i class="bi bi-check2-circle"></i><span>Registro de pagos</span>
-  </a>
-
-  <hr>
-
   <div class="section-title">Vehículos</div>
   <a class="menu-item <?= $isVehList?'active':'' ?>" href="/eo/automovilist/index.php">
     <i class="bi bi-car-front"></i><span>Listado de vehículos</span>
@@ -110,12 +93,6 @@ function render_header(string $title='Vehículos', string $active='list'){
   </a>
   <a class="menu-item <?= $isPortero?'active':'' ?>" href="/eo/automovilist/inquilinos_porteria.php">
     <i class="bi bi-shield-lock"></i><span>Control de visitas</span>
-  </a>
-
-  <hr>
-  <div class="section-title">Soporte</div>
-  <a class="menu-item <?= $isSupport?'active':'' ?>" href="/eo/automovilist/reporte_inconveniente.php">
-    <i class="bi bi-life-preserver"></i><span>Reportar inconveniente</span>
   </a>
 </nav>
 
