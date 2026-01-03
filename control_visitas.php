@@ -49,8 +49,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['registrar_visita'])) 
   $fotoPlaca  = procesar_foto('foto_placa', $errors);
 
   if (!$errors) {
-    $stmt = $con->prepare("INSERT INTO visitas_porteria (inquilino_id, visitante, foto_cedula, foto_placa, nota) VALUES (?, ?, ?, ?, ?)");
-    if ($stmt && $stmt->bind_param('issss', $inqId, $visitante, $fotoCedula, $fotoPlaca, $nota) && $stmt->execute()) {
+    $fechaSD = new DateTime('now', new DateTimeZone('America/Santo_Domingo'));
+    $fechaStr = $fechaSD->format('Y-m-d H:i:s');
+    $stmt = $con->prepare("INSERT INTO visitas_porteria (inquilino_id, visitante, foto_cedula, foto_placa, nota, fecha) VALUES (?, ?, ?, ?, ?, ?)");
+    if ($stmt && $stmt->bind_param('isssss', $inqId, $visitante, $fotoCedula, $fotoPlaca, $nota, $fechaStr) && $stmt->execute()) {
       $msg = 'Visita registrada.';
     } else {
       $errors[] = 'No se pudo registrar la visita: ' . ($stmt ? $stmt->error : $con->error);
@@ -185,7 +187,7 @@ render_header('Control de visitas','portero');
                           finfo_close($finfo);
                         }
                       ?>
-                      <a class="btn btn-outline-secondary btn-sm" href="data:<?= $mimeC ?>;base64,<?= base64_encode($v['foto_cedula']) ?>" download="cedula_<?= (int)$v['id'] ?>.jpg">Ver/descargar</a>
+                      <a class="btn btn-outline-secondary btn-sm" href="data:<?= $mimeC ?>;base64,<?= base64_encode($v['foto_cedula']) ?>" download="cedula_<?= (int)$v['id'] ?>.jpg" target="_blank">Ver/descargar</a>
                     <?php else: ?>
                       <span class="text-muted">—</span>
                     <?php endif; ?>
@@ -201,7 +203,7 @@ render_header('Control de visitas','portero');
                           finfo_close($finfo);
                         }
                       ?>
-                      <a class="btn btn-outline-secondary btn-sm" href="data:<?= $mimeP ?>;base64,<?= base64_encode($v['foto_placa']) ?>" download="placa_<?= (int)$v['id'] ?>.jpg">Ver/descargar</a>
+                      <a class="btn btn-outline-secondary btn-sm" href="data:<?= $mimeP ?>;base64,<?= base64_encode($v['foto_placa']) ?>" download="placa_<?= (int)$v['id'] ?>.jpg" target="_blank">Ver/descargar</a>
                     <?php else: ?>
                       <span class="text-muted">—</span>
                     <?php endif; ?>
