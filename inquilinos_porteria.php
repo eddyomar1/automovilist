@@ -7,8 +7,11 @@ $con->query("CREATE TABLE IF NOT EXISTS inquilinos_porteria (
   nombre VARCHAR(180) NOT NULL,
   apartamento VARCHAR(60) NOT NULL,
   telefono VARCHAR(60) NULL,
+  rol ENUM('inquilino','dueno') NOT NULL DEFAULT 'inquilino',
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+// Si la tabla ya existía sin columna rol, intenta agregarla sin romper ejecución.
+@$con->query("ALTER TABLE inquilinos_porteria ADD COLUMN rol ENUM('inquilino','dueno') NOT NULL DEFAULT 'inquilino'");
 
 $errors = [];
 $msg = '';
@@ -16,14 +19,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accion']) && $_POST['
   $nombre = trim((string)($_POST['nombre'] ?? ''));
   $apto   = trim((string)($_POST['apartamento'] ?? ''));
   $tel    = trim((string)($_POST['telefono'] ?? ''));
+  $rol    = $_POST['rol'] ?? 'inquilino';
+  if (!in_array($rol, ['inquilino','dueno'], true)) { $rol = 'inquilino'; }
 
   if ($nombre === '' || $apto === '') {
     $errors[] = 'Nombre y apartamento son obligatorios.';
   }
 
   if (!$errors) {
-    $stmt = $con->prepare("INSERT INTO inquilinos_porteria (nombre, apartamento, telefono) VALUES (?, ?, ?)");
-    if ($stmt && $stmt->bind_param('sss', $nombre, $apto, $tel) && $stmt->execute()) {
+    $stmt = $con->prepare("INSERT INTO inquilinos_porteria (nombre, apartamento, telefono, rol) VALUES (?, ?, ?, ?)");
+    if ($stmt && $stmt->bind_param('ssss', $nombre, $apto, $tel, $rol) && $stmt->execute()) {
       $msg = 'Inquilino agregado.';
     } else {
       $errors[] = 'No se pudo guardar: ' . ($stmt ? $stmt->error : $con->error);
@@ -64,7 +69,7 @@ render_header('Inquilinos actuales', 'inq');
 
   <form class="row g-3 mb-4" method="post">
     <input type="hidden" name="accion" value="crear">
-    <div class="col-md-4">
+    <div class="col-md-3">
       <label class="form-label">Nombre completo *</label>
       <input type="text" name="nombre" class="form-control" required>
     </div>
@@ -72,9 +77,16 @@ render_header('Inquilinos actuales', 'inq');
       <label class="form-label">Edif / Apartamento *</label>
       <input type="text" name="apartamento" class="form-control" required>
     </div>
-    <div class="col-md-3">
+    <div class="col-md-2">
       <label class="form-label">Teléfono</label>
       <input type="text" name="telefono" class="form-control">
+    </div>
+    <div class="col-md-2">
+      <label class="form-label">Rol</label>
+      <select name="rol" class="form-select">
+        <option value="inquilino">Inquilino</option>
+        <option value="dueno">Dueño</option>
+      </select>
     </div>
     <div class="col-md-2 d-flex align-items-end">
       <button class="btn btn-primary w-100">Guardar</button>
@@ -88,6 +100,7 @@ render_header('Inquilinos actuales', 'inq');
           <th>Nombre</th>
           <th>Apartamento</th>
           <th>Teléfono</th>
+          <th>Rol</th>
           <th>Creado</th>
           <th class="text-center">Acciones</th>
         </tr>
@@ -98,6 +111,7 @@ render_header('Inquilinos actuales', 'inq');
             <td><?= e($r['nombre']) ?></td>
             <td><?= e($r['apartamento']) ?></td>
             <td><?= e($r['telefono']) ?></td>
+            <td class="text-capitalize"><?= e($r['rol'] ?? 'inquilino') ?></td>
             <td class="text-muted"><?= e($r['created_at']) ?></td>
             <td class="text-center">
               <a class="btn btn-sm btn-outline-danger" href="?del=<?= (int)$r['id'] ?>" onclick="return confirm('¿Eliminar este inquilino?');">Eliminar</a>

@@ -7,8 +7,11 @@ $con->query("CREATE TABLE IF NOT EXISTS inquilinos_porteria (
   nombre VARCHAR(180) NOT NULL,
   apartamento VARCHAR(60) NOT NULL,
   telefono VARCHAR(60) NULL,
+  rol ENUM('inquilino','dueno') NOT NULL DEFAULT 'inquilino',
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+// Asegura columna rol si la tabla ya existía sin ella.
+@$con->query("ALTER TABLE inquilinos_porteria ADD COLUMN rol ENUM('inquilino','dueno') NOT NULL DEFAULT 'inquilino'");
 
 $buscar = body('buscar', '');
 $rows   = [];
