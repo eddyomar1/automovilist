@@ -52,7 +52,7 @@ function procesar_foto_visit(string $field, array &$errors): ?string{
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-  $visitante = trim((string)($_POST['visitante'] ?? ''));
+  $visitante = ''; // campo oculto; ya no se captura el nombre
   $fotoCedula = procesar_foto_visit('foto_cedula', $errors);
   $fotoPlaca  = procesar_foto_visit('foto_placa', $errors);
 
@@ -79,10 +79,10 @@ render_header('Registrar visita', 'new');
         <a href="index.php" class="btn btn-outline-secondary btn-sm">Volver</a>
       </div>
 
-      <div class="alert alert-secondary">
-        <div class="fw-semibold mb-1"><?= e($inquilino['nombre']) ?></div>
-        <div class="small text-muted">Apartamento: <?= e($inquilino['apartamento']) ?> | Tel: <?= e($inquilino['telefono']) ?></div>
-      </div>
+  <div class="alert alert-secondary">
+    <div class="fw-semibold mb-1"><?= e($inquilino['nombre']) ?></div>
+    <div class="small text-muted">Apartamento: <?= e($inquilino['apartamento']) ?> | Tel: <?= e($inquilino['telefono']) ?></div>
+  </div>
 
       <?php if ($msg): ?><div class="alert alert-success"><?= e($msg) ?></div><?php endif; ?>
       <?php if ($errors): ?>
@@ -92,10 +92,6 @@ render_header('Registrar visita', 'new');
       <?php endif; ?>
 
       <form action="" method="post" enctype="multipart/form-data" class="row g-3">
-        <div class="col-md-6">
-          <label class="form-label">Nombre del visitante (opcional)</label>
-          <input type="text" name="visitante" class="form-control" placeholder="Ej. Juan Pérez">
-        </div>
         <div class="col-md-6">
           <label class="form-label">Foto de la cédula</label>
           <input type="file" name="foto_cedula" accept="image/*" capture="environment" class="form-control" required>
