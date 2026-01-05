@@ -20,9 +20,10 @@ $con->query("CREATE TABLE IF NOT EXISTS visitas_porteria (
   fecha DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   foto_cedula LONGBLOB NULL,
   foto_placa LONGBLOB NULL,
-  nota TEXT NULL,
   FOREIGN KEY (inquilino_id) REFERENCES inquilinos_porteria(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+// Retira columna nota si existiera
+@$con->query("ALTER TABLE visitas_porteria DROP COLUMN nota");
 
 $inqId = isset($_GET['inq']) ? (int)$_GET['inq'] : 0;
 if ($inqId <= 0) { header('Location: index.php'); exit; }
@@ -59,7 +60,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   if (!$errors) {
     $stmtIns = $con->prepare("INSERT INTO visitas_porteria (inquilino_id, visitante, foto_cedula, foto_placa) VALUES (?, ?, ?, ?)");
     if ($stmtIns && $stmtIns->bind_param('isss', $inqId, $visitante, $fotoCedula, $fotoPlaca) && $stmtIns->execute()) {
-      $msg = 'Visita registrada correctamente.';
+      // Redirige a listado de visitas tras guardar
+      header('Location: control_visitas.php');
+      exit;
     } else {
       $errors[] = 'No se pudo registrar la visita: ' . ($stmtIns ? $stmtIns->error : $con->error);
     }

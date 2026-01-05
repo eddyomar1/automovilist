@@ -17,9 +17,10 @@ $con->query("CREATE TABLE IF NOT EXISTS visitas_porteria (
   fecha DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   foto_cedula LONGBLOB NULL,
   foto_placa LONGBLOB NULL,
-  nota TEXT NULL,
   FOREIGN KEY (inquilino_id) REFERENCES inquilinos_porteria(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+// Retira columna nota si aún existiera
+@$con->query("ALTER TABLE visitas_porteria DROP COLUMN nota");
 
 $errors = [];
 $msg = '';
@@ -41,7 +42,6 @@ function procesar_foto(string $field, array &$errors): ?string{
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['registrar_visita'])) {
   $inqId = (int)($_POST['inquilino_id'] ?? 0);
   $visitante = trim((string)($_POST['visitante'] ?? ''));
-  $nota = trim((string)($_POST['nota'] ?? ''));
   if ($inqId <= 0) {
     $errors[] = 'Selecciona un inquilino válido.';
   }
@@ -51,8 +51,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['registrar_visita'])) 
   if (!$errors) {
     $fechaSD = new DateTime('now', new DateTimeZone('America/Santo_Domingo'));
     $fechaStr = $fechaSD->format('Y-m-d H:i:s');
-    $stmt = $con->prepare("INSERT INTO visitas_porteria (inquilino_id, visitante, foto_cedula, foto_placa, nota, fecha) VALUES (?, ?, ?, ?, ?, ?)");
-    if ($stmt && $stmt->bind_param('isssss', $inqId, $visitante, $fotoCedula, $fotoPlaca, $nota, $fechaStr) && $stmt->execute()) {
+    $stmt = $con->prepare("INSERT INTO visitas_porteria (inquilino_id, visitante, foto_cedula, foto_placa, fecha) VALUES (?, ?, ?, ?, ?)");
+    if ($stmt && $stmt->bind_param('issss', $inqId, $visitante, $fotoCedula, $fotoPlaca, $fechaStr) && $stmt->execute()) {
       $msg = 'Visita registrada.';
     } else {
       $errors[] = 'No se pudo registrar la visita: ' . ($stmt ? $stmt->error : $con->error);
@@ -124,11 +124,7 @@ render_header('Control de visitas','portero');
                     <label class="form-label">Foto placa vehículo</label>
                     <input type="file" name="foto_placa" class="form-control form-control-sm" accept="image/*">
                   </div>
-                  <div class="col-md-2">
-                    <label class="form-label">Nota</label>
-                    <input type="text" name="nota" class="form-control form-control-sm" placeholder="Opcional">
-                  </div>
-                  <div class="col-md-1 d-grid">
+                  <div class="col-md-2 d-grid">
                     <button class="btn btn-sm btn-success" name="registrar_visita" value="1">Guardar</button>
                   </div>
                 </form>
@@ -165,7 +161,6 @@ render_header('Control de visitas','portero');
                 <th>Teléfono</th>
                 <th>Cédula</th>
                 <th>Placa</th>
-                <th>Nota</th>
               </tr>
             </thead>
             <tbody>
@@ -210,7 +205,6 @@ render_header('Control de visitas','portero');
                       <span class="text-muted">—</span>
                     <?php endif; ?>
                   </td>
-                  <td><?= e($v['nota']) ?></td>
                 </tr>
               <?php endforeach; ?>
             </tbody>
