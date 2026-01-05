@@ -50,13 +50,12 @@ function procesar_foto_visit(string $field, array &$errors): ?string{
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   $visitante = trim((string)($_POST['visitante'] ?? ''));
-  $nota = trim((string)($_POST['nota'] ?? ''));
   $fotoCedula = procesar_foto_visit('foto_cedula', $errors);
   $fotoPlaca  = procesar_foto_visit('foto_placa', $errors);
 
   if (!$errors) {
-    $stmtIns = $con->prepare("INSERT INTO visitas_porteria (inquilino_id, visitante, foto_cedula, foto_placa, nota) VALUES (?, ?, ?, ?, ?)");
-    if ($stmtIns && $stmtIns->bind_param('issss', $inqId, $visitante, $fotoCedula, $fotoPlaca, $nota) && $stmtIns->execute()) {
+    $stmtIns = $con->prepare("INSERT INTO visitas_porteria (inquilino_id, visitante, foto_cedula, foto_placa) VALUES (?, ?, ?, ?)");
+    if ($stmtIns && $stmtIns->bind_param('isss', $inqId, $visitante, $fotoCedula, $fotoPlaca) && $stmtIns->execute()) {
       $msg = 'Visita registrada correctamente.';
     } else {
       $errors[] = 'No se pudo registrar la visita: ' . ($stmtIns ? $stmtIns->error : $con->error);
@@ -95,17 +94,13 @@ render_header('Registrar visita', 'new');
           <input type="text" name="visitante" class="form-control" placeholder="Ej. Juan Pérez">
         </div>
         <div class="col-md-6">
-          <label class="form-label">Nota (opcional)</label>
-          <input type="text" name="nota" class="form-control" placeholder="Observaciones">
-        </div>
-        <div class="col-md-6">
           <label class="form-label">Foto de la cédula</label>
-          <input type="file" name="foto_cedula" accept="image/*" class="form-control" required>
+          <input type="file" name="foto_cedula" accept="image/*" capture="environment" class="form-control" required>
           <div class="form-text">Máx. 5MB. Formatos de imagen.</div>
         </div>
         <div class="col-md-6">
           <label class="form-label">Foto de la placa</label>
-          <input type="file" name="foto_placa" accept="image/*" class="form-control" required>
+          <input type="file" name="foto_placa" accept="image/*" capture="environment" class="form-control" required>
           <div class="form-text">Máx. 5MB. Formatos de imagen.</div>
         </div>
         <div class="col-12 d-flex justify-content-end gap-2">
