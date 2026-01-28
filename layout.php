@@ -8,6 +8,7 @@ function render_header(string $title='Vehículos', string $active='list'){
   $isSupport = ($action === 'report');
   $isInq     = ($action === 'inq');
   $isPortero = ($action === 'portero');
+  $isKeys    = ($action === 'keys');
   $showRegistrar = isset($_GET['visit']) || isset($_POST['visit']) || isset($_GET['inq']);
   $showAdmin = isset($_GET['admin']) || isset($_POST['admin']);
   $showAdmin = isset($_GET['admin']) || isset($_POST['admin']);
@@ -92,6 +93,9 @@ function render_header(string $title='Vehículos', string $active='list'){
   <?php endif; ?>
   <a class="menu-item <?= $isPortero?'active':'' ?>" href="/eo/automovilist/control_visitas.php">
     <i class="bi bi-people"></i><span>Ver visitas</span>
+  </a>
+  <a class="menu-item <?= $isKeys?'active':'' ?>" href="/eo/automovilist/llaves.php">
+    <i class="bi bi-qr-code"></i><span>Llaves digitales</span>
   </a>
 
   <?php if ($showAdmin): ?>
