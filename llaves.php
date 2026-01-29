@@ -310,19 +310,7 @@ render_header('Llaves digitales','keys');
             </td>
             <td class="text-center">
               <?php if($l['estado']==='pendiente'): ?>
-                <button class="btn btn-sm btn-primary" type="button" data-bs-toggle="collapse" data-bs-target="#complete-<?= (int)$l['id'] ?>">
-                  Completar
-                </button>
-                <div class="collapse mt-2 text-start" id="complete-<?= (int)$l['id'] ?>">
-                  <form class="d-flex flex-column gap-2" method="post" enctype="multipart/form-data">
-                    <input type="hidden" name="complete_id" value="<?= (int)$l['id'] ?>">
-                    <label class="form-label mb-0 small">Foto cédula</label>
-                    <input type="file" name="foto_cedula" accept="image/*" class="form-control form-control-sm" required>
-                    <label class="form-label mb-0 small">Foto placa</label>
-                    <input type="file" name="foto_placa" accept="image/*" class="form-control form-control-sm" required>
-                    <button class="btn btn-sm btn-success">Guardar y generar QR</button>
-                  </form>
-                </div>
+                <button class="btn btn-sm btn-primary completar-btn" data-id="<?= (int)$l['id'] ?>">Completar</button>
               <?php else: ?>
                 <a class="btn btn-sm btn-outline-primary" href="?use=<?= urlencode($l['codigo']) ?>&tipo=entrada">Entrada</a>
                 <a class="btn btn-sm btn-outline-success" href="?use=<?= urlencode($l['codigo']) ?>&tipo=salida">Salida</a>
@@ -350,6 +338,50 @@ render_header('Llaves digitales','keys');
 </script>
 <?php endif; ?>
 <script>
+// Modal para completar pendientes (subir fotos)
+document.addEventListener('click', function(e){
+  const btn = e.target.closest('.completar-btn');
+  if(!btn) return;
+  const id = btn.getAttribute('data-id');
+  let modal = document.getElementById('completeModal');
+  if(!modal){
+    const tpl = `
+    <div class="modal fade" id="completeModal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <form method="post" enctype="multipart/form-data">
+            <div class="modal-header">
+              <h5 class="modal-title">Completar llave pendiente</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+              <input type="hidden" name="complete_id" id="complete_id">
+              <div class="mb-3">
+                <label class="form-label">Foto de cédula</label>
+                <input type="file" name="foto_cedula" accept="image/*" class="form-control" required>
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Foto de placa</label>
+                <input type="file" name="foto_placa" accept="image/*" class="form-control" required>
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+              <button class="btn btn-primary">Generar QR</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>`;
+    document.body.insertAdjacentHTML('beforeend', tpl);
+    modal = document.getElementById('completeModal');
+  }
+  document.getElementById('complete_id').value = id;
+  const m = new bootstrap.Modal(modal);
+  m.show();
+});
+
+// Modal de imágenes existentes
 document.addEventListener('click', function(e){
   const btn = e.target.closest('.view-img');
   if(!btn) return;
