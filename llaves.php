@@ -231,7 +231,7 @@ render_header('Llaves digitales','keys');
       </thead>
       <tbody>
         <?php foreach($llaves as $l): ?>
-          <tr>
+          <tr class="<?= $l['estado']==='pendiente' ? 'table-warning row-pendiente' : '' ?>" data-pend-id="<?= (int)$l['id'] ?>">
             <td><?= $l['codigo'] ? '<code>'.e($l['codigo']).'</code>' : '<span class="text-muted">Pendiente</span>' ?></td>
             <td><?= e($l['visitante'] ?? 'No indicado') ?><br><span class="text-muted small">Grupo: <?= (int)($l['total_visitantes'] ?? 1) ?> | Estadia: <?= (int)($l['minutos_estadia'] ?? 60) ?> min</span></td>
             <td><?= e($l['nombre']) ?></td>
@@ -303,10 +303,7 @@ render_header('Llaves digitales','keys');
 <?php endif; ?>
 <script>
 // Modal para completar pendientes (subir fotos)
-document.addEventListener('click', function(e){
-  const btn = e.target.closest('.completar-btn');
-  if(!btn) return;
-  const id = btn.getAttribute('data-id');
+function abrirCompletar(id){
   let modal = document.getElementById('completeModal');
   if(!modal){
     const tpl = `
@@ -343,6 +340,21 @@ document.addEventListener('click', function(e){
   document.getElementById('complete_id').value = id;
   const m = new bootstrap.Modal(modal);
   m.show();
+}
+
+document.addEventListener('click', function(e){
+  const btn = e.target.closest('.completar-btn');
+  if(btn){ abrirCompletar(btn.getAttribute('data-id')); }
+});
+
+// Click en fila pendiente abre modal
+document.addEventListener('click', function(e){
+  const row = e.target.closest('tr.row-pendiente');
+  if(!row) return;
+  // Evita doble apertura si se clicó en botón o enlace dentro
+  if (e.target.closest('button, a, input, label')) return;
+  const id = row.getAttribute('data-pend-id');
+  if(id) abrirCompletar(id);
 });
 
 // Modal de imágenes existentes
