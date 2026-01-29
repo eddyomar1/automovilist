@@ -2,31 +2,36 @@
 require __DIR__ . '/init.php';
 
 // Asegura tabla de llaves QR
-$con->query("CREATE TABLE IF NOT EXISTS llaves_qr (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  inquilino_id INT NULL,
-  cedula VARCHAR(50) NOT NULL,
-  nombre VARCHAR(180) NULL,
-  apartamento VARCHAR(80) NULL,
-  codigo VARCHAR(64) NOT NULL UNIQUE,
-  estado ENUM('generada','entrada','salida','expirada') NOT NULL DEFAULT 'generada',
-  usado_entrada DATETIME NULL,
-  usado_salida DATETIME NULL,
-  expira_despues_salida DATETIME NULL,
-  foto_cedula LONGBLOB NULL,
-  foto_placa LONGBLOB NULL,
-  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  INDEX(inquilino_id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
-// Asegura columnas si la tabla ya existía sin ellas
-function ensure_column(mysqli $c, string $table, string $col, string $ddl){
-  $chk = $c->query("SHOW COLUMNS FROM {$table} LIKE '{$col}'");
-  if ($chk && $chk->fetch_assoc()) return;
-  $c->query("ALTER TABLE {$table} ADD COLUMN {$ddl}");
+$alert = null; $generated = null;
+try{
+  $con->query("CREATE TABLE IF NOT EXISTS llaves_qr (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    inquilino_id INT NULL,
+    cedula VARCHAR(50) NOT NULL,
+    nombre VARCHAR(180) NULL,
+    apartamento VARCHAR(80) NULL,
+    codigo VARCHAR(64) NOT NULL UNIQUE,
+    estado ENUM('generada','entrada','salida','expirada') NOT NULL DEFAULT 'generada',
+    usado_entrada DATETIME NULL,
+    usado_salida DATETIME NULL,
+    expira_despues_salida DATETIME NULL,
+    foto_cedula LONGBLOB NULL,
+    foto_placa LONGBLOB NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    INDEX(inquilino_id)
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+  // Asegura columnas si la tabla ya existía sin ellas
+  function ensure_column(mysqli $c, string $table, string $col, string $ddl){
+    $chk = $c->query("SHOW COLUMNS FROM {$table} LIKE '{$col}'");
+    if ($chk && $chk->fetch_assoc()) return;
+    $c->query("ALTER TABLE {$table} ADD COLUMN {$ddl}");
+  }
+  ensure_column($con, 'llaves_qr', 'inquilino_id', 'INT NULL');
+  ensure_column($con, 'llaves_qr', 'foto_cedula', 'LONGBLOB NULL');
+  ensure_column($con, 'llaves_qr', 'foto_placa', 'LONGBLOB NULL');
+}catch(Throwable $e){
+  $alert = ['danger','Error inicializando tabla llaves_qr: '.$e->getMessage()];
 }
-ensure_column($con, 'llaves_qr', 'inquilino_id', 'INT NULL');
-ensure_column($con, 'llaves_qr', 'foto_cedula', 'LONGBLOB NULL');
-ensure_column($con, 'llaves_qr', 'foto_placa', 'LONGBLOB NULL');
 
 // Expira llaves que ya pasaron 10 min después de salida
 $con->query("UPDATE llaves_qr SET estado='expirada' WHERE estado='salida' AND expira_despues_salida IS NOT NULL AND expira_despues_salida < NOW()");
@@ -107,21 +112,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   $apto   = trim((string)body('apto'));
   $inqId  = isset($_POST['inquilino_id']) ? (int)$_POST['inquilino_id'] : null;
 
-  $codigo = substr(bin2hex(random_bytes(16)),0,24);
-  $errTmp = []; $errTmp2 = [];
-  $fotoCed = procesar_foto_llave('foto_cedula', $errTmp);
-  $fotoPla = procesar_foto_llave('foto_placa', $errTmp2);
-  $errorsUp = array_merge($errTmp, $errTmp2);
-  if ($errorsUp) {
-    $alert = ['danger', implode(' ', $errorsUp)];
-  } else {
-    $stmt = $con->prepare("INSERT INTO llaves_qr (inquilino_id, cedula, nombre, apartamento, codigo, foto_cedula, foto_placa) VALUES (?,?,?,?,?,?,?)");
-    if ($stmt && $stmt->bind_param('issssss', $inqId, $cedula, $nombre ?: null, $apto ?: null, $codigo, $fotoCed, $fotoPla) && $stmt->execute()) {
-      $alert = ['success','Llave generada. Escanea el QR o comparte el código.'];
-      $generated = ['codigo'=>$codigo,'cedula'=>$cedula,'nombre'=>$nombre,'apto'=>$apto];
+  try{
+    $codigo = substr(bin2hex(random_bytes(16)),0,24);
+    $errTmp = []; $errTmp2 = [];
+    $fotoCed = procesar_foto_llave('foto_cedula', $errTmp);
+    $fotoPla = procesar_foto_llave('foto_placa', $errTmp2);
+    $errorsUp = array_merge($errTmp, $errTmp2);
+    if ($errorsUp) {
+      $alert = ['danger', implode(' ', $errorsUp)];
     } else {
-      $alert = ['danger','No se pudo crear la llave.'];
+      $stmt = $con->prepare("INSERT INTO llaves_qr (inquilino_id, cedula, nombre, apartamento, codigo, foto_cedula, foto_placa) VALUES (?,?,?,?,?,?,?)");
+      if ($stmt && $stmt->bind_param('issssss', $inqId, $cedula, $nombre ?: null, $apto ?: null, $codigo, $fotoCed, $fotoPla) && $stmt->execute()) {
+        $alert = ['success','Llave generada. Escanea el QR o comparte el código.'];
+        $generated = ['codigo'=>$codigo,'cedula'=>$cedula,'nombre'=>$nombre,'apto'=>$apto];
+      } else {
+        $alert = ['danger','No se pudo crear la llave: '.$con->error];
+      }
     }
+  }catch(Throwable $e){
+    $alert = ['danger','Error al crear la llave: '.$e->getMessage()];
   }
 }
 
