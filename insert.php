@@ -27,7 +27,26 @@ $con->query("CREATE TABLE IF NOT EXISTS visitas_porteria (
 // Asegura columnas si la tabla ya existía sin ellas
 @$con->query("ALTER TABLE visitas_porteria ADD COLUMN total_visitantes INT NOT NULL DEFAULT 1");
 @$con->query("ALTER TABLE visitas_porteria ADD COLUMN minutos_estadia INT NOT NULL DEFAULT 60");
-// Asegura columnas también en llaves_qr para la pre-creación de llaves pendientes
+// Asegura tabla y columnas en llaves_qr para la pre-creación de llaves pendientes
+$con->query("CREATE TABLE IF NOT EXISTS llaves_qr (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  inquilino_id INT NULL,
+  cedula VARCHAR(50) NOT NULL,
+  nombre VARCHAR(180) NULL,
+  apartamento VARCHAR(80) NULL,
+  visitante VARCHAR(180) NULL,
+  total_visitantes INT NOT NULL DEFAULT 1,
+  minutos_estadia INT NOT NULL DEFAULT 60,
+  codigo VARCHAR(64) NOT NULL UNIQUE,
+  estado ENUM('pendiente','generada','entrada','salida','expirada') NOT NULL DEFAULT 'pendiente',
+  usado_entrada DATETIME NULL,
+  usado_salida DATETIME NULL,
+  expira_despues_salida DATETIME NULL,
+  foto_cedula LONGBLOB NULL,
+  foto_placa LONGBLOB NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  INDEX(inquilino_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
 @$con->query("ALTER TABLE llaves_qr ADD COLUMN visitante VARCHAR(180) NULL");
 @$con->query("ALTER TABLE llaves_qr ADD COLUMN total_visitantes INT NOT NULL DEFAULT 1");
 @$con->query("ALTER TABLE llaves_qr ADD COLUMN minutos_estadia INT NOT NULL DEFAULT 60");
@@ -71,12 +90,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   if ($stmtIns && $stmtIns->bind_param('isii', $inqId, $visitante, $totalVis, $minStay) && $stmtIns->execute()) {
     // También crea un registro pendiente en llaves_qr con código temporal
     $codigoTmp = 'PEND-'.bin2hex(random_bytes(6));
-    $stmtL = $con->prepare("INSERT INTO llaves_qr (inquilino_id, cedula, nombre, apartamento, visitante, total_visitantes, minutos_estadia, codigo, estado) VALUES (?,?,?,?,?,?,?, ?, 'pendiente')");
+    $stmtL = $con->prepare("INSERT INTO llaves_qr (inquilino_id, cedula, nombre, apartamento, visitante, total_visitantes, minutos_estadia, codigo, estado) VALUES (?,?,?,?,?,?,?,?, 'pendiente')");
     $cedTmp = '00000000000';
     $nomTmp = $visitante;
     $aptTmp = $inquilino['apartamento'] ?? null;
     if ($stmtL) {
-      if (!$stmtL->bind_param('isssssiis', $inqId, $cedTmp, $nomTmp, $aptTmp, $visitante, $totalVis, $minStay, $codigoTmp) || !$stmtL->execute()) {
+      if (!$stmtL->bind_param('isssssii s', $inqId, $cedTmp, $nomTmp, $aptTmp, $visitante, $totalVis, $minStay, $codigoTmp) || !$stmtL->execute()) {
         $errors[] = 'No se pudo crear la notificación pendiente: '.$stmtL->error;
       }
     } else {
