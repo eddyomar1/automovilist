@@ -152,7 +152,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_POST['complete_id'])) {
   }
 }
 
-// Completar una visita pendiente (subir fotos y generar código)
+// Completar una visita pendiente al registrar entrada (subir fotos, generar código y marcar entrada)
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['complete_id'])) {
   $idComp = (int)$_POST['complete_id'];
   $errA = []; $errB = [];
@@ -163,12 +163,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['complete_id'])) {
     $alert = ['danger', implode(' ', $errorsUp)];
   } else {
     $codigo = substr(bin2hex(random_bytes(16)),0,24);
-    $stmt = $con->prepare("UPDATE llaves_qr SET codigo=?, foto_cedula=?, foto_placa=?, estado='generada', expira_despues_salida=DATE_ADD(NOW(), INTERVAL minutos_estadia MINUTE) WHERE id=?");
+    $stmt = $con->prepare("UPDATE llaves_qr SET codigo=?, foto_cedula=?, foto_placa=?, estado='entrada', usado_entrada=NOW(), expira_despues_salida=NULL WHERE id=?");
     $codTmp = $codigo;
     $fotoCTmp = $fotoCed;
     $fotoPTmp = $fotoPla;
     if ($stmt && $stmt->bind_param('sssi', $codTmp, $fotoCTmp, $fotoPTmp, $idComp) && $stmt->execute()) {
-      $alert = ['success','Llave completada y QR generado.'];
+      $alert = ['success','Entrada registrada y código generado.'];
       $generated = ['codigo'=>$codigo,'cedula'=>'','nombre'=>'','apto'=>''];
     } else {
       $alert = ['danger','No se pudo completar la llave: '.($stmt?$stmt->error:$con->error)];
@@ -274,7 +274,7 @@ render_header('Llaves digitales','keys');
             </td>
             <td class="text-center">
               <?php if($l['estado']==='pendiente'): ?>
-                <button class="btn btn-sm btn-primary completar-btn" data-id="<?= (int)$l['id'] ?>">Completar</button>
+                <button class="btn btn-sm btn-primary entrada-pendiente-btn" data-id="<?= (int)$l['id'] ?>">Entrada / generar</button>
               <?php else: ?>
                 <a class="btn btn-sm btn-outline-primary" href="?use=<?= urlencode($l['codigo']) ?>&tipo=entrada">Entrada</a>
                 <a class="btn btn-sm btn-outline-success" href="?use=<?= urlencode($l['codigo']) ?>&tipo=salida">Salida</a>
@@ -302,8 +302,8 @@ render_header('Llaves digitales','keys');
 </script>
 <?php endif; ?>
 <script>
-// Modal para completar pendientes (subir fotos)
-function abrirCompletar(id){
+// Modal para completar pendiente y registrar entrada (genera código)
+function abrirEntradaPendiente(id){
   let modal = document.getElementById('completeModal');
   if(!modal){
     const tpl = `
@@ -312,10 +312,11 @@ function abrirCompletar(id){
         <div class="modal-content">
           <form method="post" enctype="multipart/form-data">
             <div class="modal-header">
-              <h5 class="modal-title">Completar llave pendiente</h5>
+              <h5 class="modal-title">Registrar entrada y generar código</h5>
               <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
+              <input type="hidden" name="entrada_pendiente" value="1">
               <input type="hidden" name="complete_id" id="complete_id">
               <div class="mb-3">
                 <label class="form-label">Foto de cédula</label>
@@ -328,7 +329,7 @@ function abrirCompletar(id){
             </div>
             <div class="modal-footer">
               <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
-              <button class="btn btn-primary">Generar QR</button>
+              <button class="btn btn-primary">Registrar entrada</button>
             </div>
           </form>
         </div>
@@ -343,18 +344,8 @@ function abrirCompletar(id){
 }
 
 document.addEventListener('click', function(e){
-  const btn = e.target.closest('.completar-btn');
-  if(btn){ abrirCompletar(btn.getAttribute('data-id')); }
-});
-
-// Click en fila pendiente abre modal
-document.addEventListener('click', function(e){
-  const row = e.target.closest('tr.row-pendiente');
-  if(!row) return;
-  // Evita doble apertura si se clicó en botón o enlace dentro
-  if (e.target.closest('button, a, input, label')) return;
-  const id = row.getAttribute('data-pend-id');
-  if(id) abrirCompletar(id);
+  const btn = e.target.closest('.entrada-pendiente-btn');
+  if(btn){ abrirEntradaPendiente(btn.getAttribute('data-id')); }
 });
 
 // Modal de imágenes existentes
