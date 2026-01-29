@@ -188,49 +188,13 @@ render_header('Llaves digitales','keys');
   <p class="text-muted">Llaves de un solo uso: entrada y salida una vez. Tras registrar la salida, expiran en 10 minutos.</p>
   <?php if($alert): ?><div class="alert alert-<?= e($alert[0]) ?>"><?= e($alert[1]) ?></div><?php endif; ?>
 
-  <form class="row g-3" method="post" enctype="multipart/form-data">
-    <div class="col-12 d-none">
-      <div class="row g-3">
-        <div class="col-md-3">
-          <label class="form-label">Cédula</label>
-          <input type="text" name="cedula" class="form-control" maxlength="20" value="00000000000">
-        </div>
-        <div class="col-md-3">
-          <label class="form-label">Nombre (opcional)</label>
-          <input type="text" name="nombre" class="form-control" placeholder="Nombre del visitante o residente">
-        </div>
-        <div class="col-md-3">
-          <label class="form-label">Apartamento (opcional)</label>
-          <input type="text" name="apto" class="form-control" placeholder="Ej. 01 Apto 2A">
-        </div>
-        <div class="col-md-3">
-          <label class="form-label">Inquilino (opcional)</label>
-          <select name="inquilino_id" class="form-select">
-            <option value="">-- Selecciona para asociar --</option>
-            <?php
-              $inqOpts = $con->query("SELECT id, nombre, apartamento FROM inquilinos_porteria ORDER BY nombre LIMIT 200");
-              if ($inqOpts) while($r=$inqOpts->fetch_assoc()){
-                echo '<option value="'.(int)$r['id'].'">'.e($r['nombre']).' - '.e($r['apartamento']).'</option>';
-              }
-            ?>
-          </select>
-        </div>
-      </div>
-    </div>
-    <div class="col-md-3">
-      <label class="form-label">Foto de cédula *</label>
-      <input type="file" name="foto_cedula" class="form-control" accept="image/*" required>
-      <div class="form-text">Máx. 5MB. Debe verse nombre y número.</div>
-    </div>
-    <div class="col-md-3">
-      <label class="form-label">Foto de placa *</label>
-      <input type="file" name="foto_placa" class="form-control" accept="image/*" required>
-      <div class="form-text">Máx. 5MB. Debe verse la placa.</div>
-    </div>
-    <div class="col-md-3 d-flex align-items-end">
-      <button class="btn btn-primary w-100">Generar llave</button>
-    </div>
-  </form>
+  <?php
+    $hayPendientes = false;
+    foreach($llaves as $ll) { if($ll['estado']==='pendiente'){ $hayPendientes=true; break; } }
+  ?>
+  <?php if(!$hayPendientes): ?>
+    <div class="alert alert-info mb-0">No hay llaves pendientes seleccionadas. Selecciona un registro pendiente en la tabla para completarlo.</div>
+  <?php endif; ?>
 </div></div>
 
 <?php if($generated): ?>
