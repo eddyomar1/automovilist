@@ -97,28 +97,25 @@ if (isset($_GET['use'], $_GET['tipo'])) {
 // Generar nueva llave
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   $cedula = preg_replace('/\D+/', '', body('cedula'));
+  if ($cedula === '') { $cedula = '00000000000'; } // valor dummy mientras el campo está oculto
   $nombre = trim((string)body('nombre'));
   $apto   = trim((string)body('apto'));
   $inqId  = isset($_POST['inquilino_id']) ? (int)$_POST['inquilino_id'] : null;
 
-  if ($cedula === '' || strlen($cedula) < 7) {
-    $alert = ['danger','Ingresa una cédula válida.'];
+  $codigo = substr(bin2hex(random_bytes(16)),0,24);
+  $errTmp = []; $errTmp2 = [];
+  $fotoCed = procesar_foto_llave('foto_cedula', $errTmp);
+  $fotoPla = procesar_foto_llave('foto_placa', $errTmp2);
+  $errorsUp = array_merge($errTmp, $errTmp2);
+  if ($errorsUp) {
+    $alert = ['danger', implode(' ', $errorsUp)];
   } else {
-    $codigo = substr(bin2hex(random_bytes(16)),0,24);
-    $errTmp = []; $errTmp2 = [];
-    $fotoCed = procesar_foto_llave('foto_cedula', $errTmp);
-    $fotoPla = procesar_foto_llave('foto_placa', $errTmp2);
-    $errorsUp = array_merge($errTmp, $errTmp2);
-    if ($errorsUp) {
-      $alert = ['danger', implode(' ', $errorsUp)];
+    $stmt = $con->prepare("INSERT INTO llaves_qr (inquilino_id, cedula, nombre, apartamento, codigo, foto_cedula, foto_placa) VALUES (?,?,?,?,?,?,?)");
+    if ($stmt && $stmt->bind_param('issssss', $inqId, $cedula, $nombre ?: null, $apto ?: null, $codigo, $fotoCed, $fotoPla) && $stmt->execute()) {
+      $alert = ['success','Llave generada. Escanea el QR o comparte el código.'];
+      $generated = ['codigo'=>$codigo,'cedula'=>$cedula,'nombre'=>$nombre,'apto'=>$apto];
     } else {
-      $stmt = $con->prepare("INSERT INTO llaves_qr (inquilino_id, cedula, nombre, apartamento, codigo, foto_cedula, foto_placa) VALUES (?,?,?,?,?,?,?)");
-      if ($stmt && $stmt->bind_param('issssss', $inqId, $cedula, $nombre ?: null, $apto ?: null, $codigo, $fotoCed, $fotoPla) && $stmt->execute()) {
-        $alert = ['success','Llave generada. Escanea el QR o comparte el código.'];
-        $generated = ['codigo'=>$codigo,'cedula'=>$cedula,'nombre'=>$nombre,'apto'=>$apto];
-      } else {
-        $alert = ['danger','No se pudo crear la llave.'];
-      }
+      $alert = ['danger','No se pudo crear la llave.'];
     }
   }
 }
@@ -136,29 +133,33 @@ render_header('Llaves digitales','keys');
   <?php if($alert): ?><div class="alert alert-<?= e($alert[0]) ?>"><?= e($alert[1]) ?></div><?php endif; ?>
 
   <form class="row g-3" method="post" enctype="multipart/form-data">
-    <div class="col-md-3">
-      <label class="form-label">Cédula *</label>
-      <input type="text" name="cedula" class="form-control" maxlength="20" required>
-    </div>
-    <div class="col-md-3">
-      <label class="form-label">Nombre (opcional)</label>
-      <input type="text" name="nombre" class="form-control" placeholder="Nombre del visitante o residente">
-    </div>
-    <div class="col-md-3">
-      <label class="form-label">Apartamento (opcional)</label>
-      <input type="text" name="apto" class="form-control" placeholder="Ej. 01 Apto 2A">
-    </div>
-    <div class="col-md-3">
-      <label class="form-label">Inquilino (opcional)</label>
-      <select name="inquilino_id" class="form-select">
-        <option value="">-- Selecciona para asociar --</option>
-        <?php
-          $inqOpts = $con->query("SELECT id, nombre, apartamento FROM inquilinos_porteria ORDER BY nombre LIMIT 200");
-          if ($inqOpts) while($r=$inqOpts->fetch_assoc()){
-            echo '<option value="'.(int)$r['id'].'">'.e($r['nombre']).' - '.e($r['apartamento']).'</option>';
-          }
-        ?>
-      </select>
+    <div class="col-12 d-none">
+      <div class="row g-3">
+        <div class="col-md-3">
+          <label class="form-label">Cédula</label>
+          <input type="text" name="cedula" class="form-control" maxlength="20" value="00000000000">
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Nombre (opcional)</label>
+          <input type="text" name="nombre" class="form-control" placeholder="Nombre del visitante o residente">
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Apartamento (opcional)</label>
+          <input type="text" name="apto" class="form-control" placeholder="Ej. 01 Apto 2A">
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Inquilino (opcional)</label>
+          <select name="inquilino_id" class="form-select">
+            <option value="">-- Selecciona para asociar --</option>
+            <?php
+              $inqOpts = $con->query("SELECT id, nombre, apartamento FROM inquilinos_porteria ORDER BY nombre LIMIT 200");
+              if ($inqOpts) while($r=$inqOpts->fetch_assoc()){
+                echo '<option value="'.(int)$r['id'].'">'.e($r['nombre']).' - '.e($r['apartamento']).'</option>';
+              }
+            ?>
+          </select>
+        </div>
+      </div>
     </div>
     <div class="col-md-3">
       <label class="form-label">Foto de cédula *</label>
