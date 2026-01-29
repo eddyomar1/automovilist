@@ -27,6 +27,10 @@ $con->query("CREATE TABLE IF NOT EXISTS visitas_porteria (
 // Asegura columnas si la tabla ya existía sin ellas
 @$con->query("ALTER TABLE visitas_porteria ADD COLUMN total_visitantes INT NOT NULL DEFAULT 1");
 @$con->query("ALTER TABLE visitas_porteria ADD COLUMN minutos_estadia INT NOT NULL DEFAULT 60");
+// Asegura columnas también en llaves_qr para la pre-creación de llaves pendientes
+@$con->query("ALTER TABLE llaves_qr ADD COLUMN visitante VARCHAR(180) NULL");
+@$con->query("ALTER TABLE llaves_qr ADD COLUMN total_visitantes INT NOT NULL DEFAULT 1");
+@$con->query("ALTER TABLE llaves_qr ADD COLUMN minutos_estadia INT NOT NULL DEFAULT 60");
 // Retira columna nota si existiera
 @$con->query("ALTER TABLE visitas_porteria DROP COLUMN nota");
 
