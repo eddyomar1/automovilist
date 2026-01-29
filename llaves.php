@@ -175,20 +175,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['complete_id'])) {
     }
   }
 }
-        if (call_user_func_array([$stmt,'bind_param'], $params) && $stmt->execute()) {
-          $alert = ['success','Llave generada. Escanea el QR o comparte el código.'];
-          $generated = ['codigo'=>$codigo,'cedula'=>$cedula,'nombre'=>$nombre,'apto'=>$apto];
-        } else {
-          $alert = ['danger','No se pudo crear la llave: '.$stmt->error];
-        }
-      } else {
-        $alert = ['danger','No se pudo preparar el insert: '.$con->error];
-      }
-    }
-  }catch(Throwable $e){
-    $alert = ['danger','Error al crear la llave: '.$e->getMessage()];
-  }
-}
 
 // Listado
 $llaves = [];
