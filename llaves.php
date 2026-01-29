@@ -4,6 +4,7 @@ require __DIR__ . '/init.php';
 // Asegura tabla de llaves QR
 $con->query("CREATE TABLE IF NOT EXISTS llaves_qr (
   id INT AUTO_INCREMENT PRIMARY KEY,
+  inquilino_id INT NULL,
   cedula VARCHAR(50) NOT NULL,
   nombre VARCHAR(180) NULL,
   apartamento VARCHAR(80) NULL,
@@ -12,8 +13,15 @@ $con->query("CREATE TABLE IF NOT EXISTS llaves_qr (
   usado_entrada DATETIME NULL,
   usado_salida DATETIME NULL,
   expira_despues_salida DATETIME NULL,
-  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+  foto_cedula LONGBLOB NULL,
+  foto_placa LONGBLOB NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  INDEX(inquilino_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+// Asegura columnas si la tabla ya existía
+@$con->query("ALTER TABLE llaves_qr ADD COLUMN inquilino_id INT NULL");
+@$con->query("ALTER TABLE llaves_qr ADD COLUMN foto_cedula LONGBLOB NULL");
+@$con->query("ALTER TABLE llaves_qr ADD COLUMN foto_placa LONGBLOB NULL");
 
 // Expira llaves que ya pasaron 10 min después de salida
 $con->query("UPDATE llaves_qr SET estado='expirada' WHERE estado='salida' AND expira_despues_salida IS NOT NULL AND expira_despues_salida < NOW()");
@@ -26,6 +34,23 @@ function format_cedula_local(string $d): string{
     return substr($digits,0,3).'-'.substr($digits,3,7).'-'.substr($digits,10,1);
   }
   return $d;
+}
+
+function procesar_foto_llave(string $field, array &$errors): ?string{
+  if (!isset($_FILES[$field]) || $_FILES[$field]['error'] === UPLOAD_ERR_NO_FILE) {
+    $errors[] = "La foto de {$field} es obligatoria.";
+    return null;
+  }
+  $f = $_FILES[$field];
+  if ($f['error'] !== UPLOAD_ERR_OK) {
+    $errors[] = "No se pudo subir {$field} (código {$f['error']}).";
+    return null;
+  }
+  if ($f['size'] > 5 * 1024 * 1024) {
+    $errors[] = "{$field} supera 5MB.";
+    return null;
+  }
+  return file_get_contents($f['tmp_name']);
 }
 
 // Registrar uso de llave (entrada/salida)
@@ -74,16 +99,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   $cedula = preg_replace('/\D+/', '', body('cedula'));
   $nombre = trim((string)body('nombre'));
   $apto   = trim((string)body('apto'));
+  $inqId  = isset($_POST['inquilino_id']) ? (int)$_POST['inquilino_id'] : null;
 
   if ($cedula === '' || strlen($cedula) < 7) {
     $alert = ['danger','Ingresa una cédula válida.'];
   } else {
     $codigo = substr(bin2hex(random_bytes(16)),0,24);
-    $stmt = $con->prepare("INSERT INTO llaves_qr (cedula, nombre, apartamento, codigo) VALUES (?,?,?,?)");
-    if ($stmt && $stmt->bind_param('ssss', $cedula, $nombre ?: null, $apto ?: null, $codigo) && $stmt->execute()) {
-      $alert = ['success','Llave generada. Escanea el QR o comparte el código.'];
-      $generated = ['codigo'=>$codigo,'cedula'=>$cedula,'nombre'=>$nombre,'apto'=>$apto];
+    $errTmp = []; $errTmp2 = [];
+    $fotoCed = procesar_foto_llave('foto_cedula', $errTmp);
+    $fotoPla = procesar_foto_llave('foto_placa', $errTmp2);
+    $errorsUp = array_merge($errTmp, $errTmp2);
+    if ($errorsUp) {
+      $alert = ['danger', implode(' ', $errorsUp)];
     } else {
+      $stmt = $con->prepare("INSERT INTO llaves_qr (inquilino_id, cedula, nombre, apartamento, codigo, foto_cedula, foto_placa) VALUES (?,?,?,?,?,?,?)");
+      if ($stmt && $stmt->bind_param('issssss', $inqId, $cedula, $nombre ?: null, $apto ?: null, $codigo, $fotoCed, $fotoPla) && $stmt->execute()) {
+        $alert = ['success','Llave generada. Escanea el QR o comparte el código.'];
+        $generated = ['codigo'=>$codigo,'cedula'=>$cedula,'nombre'=>$nombre,'apto'=>$apto];
+      } else {
       $alert = ['danger','No se pudo crear la llave.'];
     }
   }
@@ -101,7 +134,7 @@ render_header('Llaves digitales','keys');
   <p class="text-muted">Llaves de un solo uso: entrada y salida una vez. Tras registrar la salida, expiran en 10 minutos.</p>
   <?php if($alert): ?><div class="alert alert-<?= e($alert[0]) ?>"><?= e($alert[1]) ?></div><?php endif; ?>
 
-  <form class="row g-3" method="post">
+  <form class="row g-3" method="post" enctype="multipart/form-data">
     <div class="col-md-3">
       <label class="form-label">Cédula *</label>
       <input type="text" name="cedula" class="form-control" maxlength="20" required>
@@ -113,6 +146,28 @@ render_header('Llaves digitales','keys');
     <div class="col-md-3">
       <label class="form-label">Apartamento (opcional)</label>
       <input type="text" name="apto" class="form-control" placeholder="Ej. 01 Apto 2A">
+    </div>
+    <div class="col-md-3">
+      <label class="form-label">Inquilino (opcional)</label>
+      <select name="inquilino_id" class="form-select">
+        <option value="">-- Selecciona para asociar --</option>
+        <?php
+          $inqOpts = $con->query("SELECT id, nombre, apartamento FROM inquilinos_porteria ORDER BY nombre LIMIT 200");
+          if ($inqOpts) while($r=$inqOpts->fetch_assoc()){
+            echo '<option value="'.(int)$r['id'].'">'.e($r['nombre']).' - '.e($r['apartamento']).'</option>';
+          }
+        ?>
+      </select>
+    </div>
+    <div class="col-md-3">
+      <label class="form-label">Foto de cédula *</label>
+      <input type="file" name="foto_cedula" class="form-control" accept="image/*" required>
+      <div class="form-text">Máx. 5MB. Debe verse nombre y número.</div>
+    </div>
+    <div class="col-md-3">
+      <label class="form-label">Foto de placa *</label>
+      <input type="file" name="foto_placa" class="form-control" accept="image/*" required>
+      <div class="form-text">Máx. 5MB. Debe verse la placa.</div>
     </div>
     <div class="col-md-3 d-flex align-items-end">
       <button class="btn btn-primary w-100">Generar llave</button>
@@ -149,7 +204,7 @@ render_header('Llaves digitales','keys');
     <table class="table table-hover align-middle" id="tabla">
       <thead class="table-light">
         <tr>
-          <th>Código</th><th>Cédula</th><th>Nombre</th><th>Apto</th><th>Estado</th><th>Entrada</th><th>Salida</th><th>Expira</th><th class="text-center">Acciones</th>
+          <th>Código</th><th>Cédula</th><th>Nombre</th><th>Apto</th><th>Estado</th><th>Entrada</th><th>Salida</th><th>Expira</th><th>Cédula img</th><th>Placa img</th><th class="text-center">Acciones</th>
         </tr>
       </thead>
       <tbody>
@@ -172,6 +227,24 @@ render_header('Llaves digitales','keys');
             <td><?= e($l['usado_entrada'] ?? '—') ?></td>
             <td><?= e($l['usado_salida'] ?? '—') ?></td>
             <td><?= e($l['expira_despues_salida'] ?? '—') ?></td>
+            <td>
+              <?php if(!empty($l['foto_cedula'])):
+                $mime='image/jpeg';
+                if (function_exists('finfo_open')) { $fi=finfo_open(FILEINFO_MIME_TYPE); $det=finfo_buffer($fi,$l['foto_cedula']); if($det) $mime=$det; finfo_close($fi); }
+                $href=\"data:$mime;base64,\".base64_encode($l['foto_cedula']);
+              ?>
+                <button type=\"button\" class=\"btn btn-outline-secondary btn-sm view-img\" data-img=\"<?= e($href) ?>\" data-title=\"Cédula llave #<?= (int)$l['id'] ?>\">Ver</button>
+              <?php else: ?><span class=\"text-muted\">—</span><?php endif; ?>
+            </td>
+            <td>
+              <?php if(!empty($l['foto_placa'])):
+                $mime='image/jpeg';
+                if (function_exists('finfo_open')) { $fi=finfo_open(FILEINFO_MIME_TYPE); $det=finfo_buffer($fi,$l['foto_placa']); if($det) $mime=$det; finfo_close($fi); }
+                $href=\"data:$mime;base64,\".base64_encode($l['foto_placa']);
+              ?>
+                <button type=\"button\" class=\"btn btn-outline-secondary btn-sm view-img\" data-img=\"<?= e($href) ?>\" data-title=\"Placa llave #<?= (int)$l['id'] ?>\">Ver</button>
+              <?php else: ?><span class=\"text-muted\">—</span><?php endif; ?>
+            </td>
             <td class="text-center d-flex gap-1">
               <a class="btn btn-sm btn-outline-primary" href="?use=<?= urlencode($l['codigo']) ?>&tipo=entrada">Entrada</a>
               <a class="btn btn-sm btn-outline-success" href="?use=<?= urlencode($l['codigo']) ?>&tipo=salida">Salida</a>
@@ -197,4 +270,34 @@ render_header('Llaves digitales','keys');
 })();
 </script>
 <?php endif; ?>
+<script>
+document.addEventListener('click', function(e){
+  const btn = e.target.closest('.view-img');
+  if(!btn) return;
+  const src = btn.getAttribute('data-img');
+  const title = btn.getAttribute('data-title') || 'Imagen';
+  let modal = document.getElementById('imgModal');
+  if(!modal){
+    const tpl = `<div class="modal fade" id="imgModal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="imgModalLabel">Imagen</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body text-center">
+            <img src="" alt="Imagen" id="imgModalSrc" class="img-fluid rounded">
+          </div>
+        </div>
+      </div>
+    </div>`;
+    document.body.insertAdjacentHTML('beforeend', tpl);
+    modal = document.getElementById('imgModal');
+  }
+  document.getElementById('imgModalSrc').src = src;
+  document.getElementById('imgModalLabel').textContent = title;
+  const m = new bootstrap.Modal(modal);
+  m.show();
+});
+</script>
 <?php render_footer(); ?>
