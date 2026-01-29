@@ -122,11 +122,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       $alert = ['danger', implode(' ', $errorsUp)];
     } else {
       $stmt = $con->prepare("INSERT INTO llaves_qr (inquilino_id, cedula, nombre, apartamento, codigo, foto_cedula, foto_placa) VALUES (?,?,?,?,?,?,?)");
-      if ($stmt && $stmt->bind_param('issssss', $inqId, $cedula, $nombre ?: null, $apto ?: null, $codigo, $fotoCed, $fotoPla) && $stmt->execute()) {
-        $alert = ['success','Llave generada. Escanea el QR o comparte el código.'];
-        $generated = ['codigo'=>$codigo,'cedula'=>$cedula,'nombre'=>$nombre,'apto'=>$apto];
+      // bind_param con referencias explícitas
+      $inqIdTmp = $inqId ?? 0;
+      $cedTmp   = $cedula;
+      $nomTmp   = ($nombre === '' ? null : $nombre);
+      $aptTmp   = ($apto === '' ? null : $apto);
+      $codTmp   = $codigo;
+      $fotoCTmp = $fotoCed;
+      $fotoPTmp = $fotoPla;
+      if ($stmt) {
+        $params = ['issssss', &$inqIdTmp, &$cedTmp, &$nomTmp, &$aptTmp, &$codTmp, &$fotoCTmp, &$fotoPTmp];
+        if (call_user_func_array([$stmt,'bind_param'], $params) && $stmt->execute()) {
+          $alert = ['success','Llave generada. Escanea el QR o comparte el código.'];
+          $generated = ['codigo'=>$codigo,'cedula'=>$cedula,'nombre'=>$nombre,'apto'=>$apto];
+        } else {
+          $alert = ['danger','No se pudo crear la llave: '.$stmt->error];
+        }
       } else {
-        $alert = ['danger','No se pudo crear la llave: '.$con->error];
+        $alert = ['danger','No se pudo preparar el insert: '.$con->error];
       }
     }
   }catch(Throwable $e){
