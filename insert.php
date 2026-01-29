@@ -69,12 +69,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   // Solo notifica; fotos se subirán al completar la llave
   $stmtIns = $con->prepare("INSERT INTO visitas_porteria (inquilino_id, visitante, total_visitantes, minutos_estadia) VALUES (?, ?, ?, ?)");
   if ($stmtIns && $stmtIns->bind_param('isii', $inqId, $visitante, $totalVis, $minStay) && $stmtIns->execute()) {
-    // También crea un registro pendiente en llaves_qr
-    $stmtL = $con->prepare("INSERT INTO llaves_qr (inquilino_id, cedula, nombre, apartamento, visitante, total_visitantes, minutos_estadia, estado) VALUES (?,?,?,?,?,?,?, 'pendiente')");
+    // También crea un registro pendiente en llaves_qr con código temporal
+    $codigoTmp = 'PEND-'.bin2hex(random_bytes(6));
+    $stmtL = $con->prepare("INSERT INTO llaves_qr (inquilino_id, cedula, nombre, apartamento, visitante, total_visitantes, minutos_estadia, codigo, estado) VALUES (?,?,?,?,?,?,?,?, 'pendiente')");
     $cedTmp = '00000000000';
     $nomTmp = $visitante;
     $aptTmp = $inquilino['apartamento'] ?? null;
-    if ($stmtL) { $stmtL->bind_param('issssii', $inqId, $cedTmp, $nomTmp, $aptTmp, $visitante, $totalVis, $minStay); $stmtL->execute(); }
+    if ($stmtL) { $stmtL->bind_param('isssssii', $inqId, $cedTmp, $nomTmp, $aptTmp, $visitante, $totalVis, $minStay, $codigoTmp); $stmtL->execute(); }
     header('Location: llaves.php?pendiente=1');
     exit;
   } else {
