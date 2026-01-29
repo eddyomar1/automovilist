@@ -17,6 +17,8 @@ $con->query("CREATE TABLE IF NOT EXISTS visitas_porteria (
   id INT AUTO_INCREMENT PRIMARY KEY,
   inquilino_id INT NOT NULL,
   visitante VARCHAR(180) NULL,
+  total_visitantes INT NOT NULL DEFAULT 1,
+  minutos_estadia INT NOT NULL DEFAULT 60,
   fecha DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   foto_cedula LONGBLOB NULL,
   foto_placa LONGBLOB NULL,
@@ -53,19 +55,22 @@ function procesar_foto_visit(string $field, array &$errors): ?string{
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-  $visitante = ''; // campo oculto; ya no se captura el nombre
-  $fotoCedula = procesar_foto_visit('foto_cedula', $errors);
-  $fotoPlaca  = procesar_foto_visit('foto_placa', $errors);
-
-  if (!$errors) {
-    $stmtIns = $con->prepare("INSERT INTO visitas_porteria (inquilino_id, visitante, foto_cedula, foto_placa) VALUES (?, ?, ?, ?)");
-    if ($stmtIns && $stmtIns->bind_param('isss', $inqId, $visitante, $fotoCedula, $fotoPlaca) && $stmtIns->execute()) {
-      // Redirige a listado de visitas tras guardar
-      header('Location: control_visitas.php');
-      exit;
-    } else {
-      $errors[] = 'No se pudo registrar la visita: ' . ($stmtIns ? $stmtIns->error : $con->error);
-    }
+  $visitante = trim((string)($_POST['visitante'] ?? ''));
+  $totalVis  = max(1, (int)($_POST['total_visitantes'] ?? 1));
+  $minStay   = max(10, (int)($_POST['minutos_estadia'] ?? 60));
+  // Solo notifica; fotos se subirán al completar la llave
+  $stmtIns = $con->prepare("INSERT INTO visitas_porteria (inquilino_id, visitante, total_visitantes, minutos_estadia) VALUES (?, ?, ?, ?)");
+  if ($stmtIns && $stmtIns->bind_param('isii', $inqId, $visitante, $totalVis, $minStay) && $stmtIns->execute()) {
+    // También crea un registro pendiente en llaves_qr
+    $stmtL = $con->prepare("INSERT INTO llaves_qr (inquilino_id, cedula, nombre, apartamento, visitante, total_visitantes, minutos_estadia, estado) VALUES (?,?,?,?,?,?,?, 'pendiente')");
+    $cedTmp = '00000000000';
+    $nomTmp = $visitante;
+    $aptTmp = $inquilino['apartamento'] ?? null;
+    if ($stmtL) { $stmtL->bind_param('issssii', $inqId, $cedTmp, $nomTmp, $aptTmp, $visitante, $totalVis, $minStay); $stmtL->execute(); }
+    header('Location: llaves.php?pendiente=1');
+    exit;
+  } else {
+    $errors[] = 'No se pudo registrar la visita: ' . ($stmtIns ? $stmtIns->error : $con->error);
   }
 }
 
@@ -94,19 +99,21 @@ render_header('Registrar visita', 'new');
         </div>
       <?php endif; ?>
 
-      <form action="" method="post" enctype="multipart/form-data" class="row g-3">
+      <form action="" method="post" class="row g-3">
         <div class="col-md-6">
-          <label class="form-label">Foto de la cédula</label>
-          <input type="file" name="foto_cedula" accept="image/*" capture="environment" class="form-control" required>
-          <div class="form-text">Máx. 5MB. Formatos de imagen.</div>
+          <label class="form-label">Nombre del visitante *</label>
+          <input type="text" name="visitante" class="form-control" required placeholder="Ej. Juan Pérez">
         </div>
-        <div class="col-md-6">
-          <label class="form-label">Foto de la placa</label>
-          <input type="file" name="foto_placa" accept="image/*" capture="environment" class="form-control" required>
-          <div class="form-text">Máx. 5MB. Formatos de imagen.</div>
+        <div class="col-md-3">
+          <label class="form-label">Total de visitantes *</label>
+          <input type="number" name="total_visitantes" class="form-control" min="1" value="1" required>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Tiempo de estadía (min) *</label>
+          <input type="number" name="minutos_estadia" class="form-control" min="10" step="5" value="60" required>
         </div>
         <div class="col-12 d-flex justify-content-end gap-2">
-          <button class="btn btn-primary">Guardar visita</button>
+          <button class="btn btn-primary">Notificar visita</button>
           <a href="index.php" class="btn btn-outline-secondary">Cancelar</a>
         </div>
       </form>

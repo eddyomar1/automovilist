@@ -10,6 +10,9 @@ try{
     cedula VARCHAR(50) NOT NULL,
     nombre VARCHAR(180) NULL,
     apartamento VARCHAR(80) NULL,
+    visitante VARCHAR(180) NULL,
+    total_visitantes INT NOT NULL DEFAULT 1,
+    minutos_estadia INT NOT NULL DEFAULT 60,
     codigo VARCHAR(64) NOT NULL UNIQUE,
     estado ENUM('generada','entrada','salida','expirada') NOT NULL DEFAULT 'generada',
     usado_entrada DATETIME NULL,
@@ -29,6 +32,9 @@ try{
   ensure_column($con, 'llaves_qr', 'inquilino_id', 'INT NULL');
   ensure_column($con, 'llaves_qr', 'foto_cedula', 'LONGBLOB NULL');
   ensure_column($con, 'llaves_qr', 'foto_placa', 'LONGBLOB NULL');
+  ensure_column($con, 'llaves_qr', 'visitante', 'VARCHAR(180) NULL');
+  ensure_column($con, 'llaves_qr', 'total_visitantes', 'INT NOT NULL DEFAULT 1');
+  ensure_column($con, 'llaves_qr', 'minutos_estadia', 'INT NOT NULL DEFAULT 60');
 }catch(Throwable $e){
   $alert = ['danger','Error inicializando tabla llaves_qr: '.$e->getMessage()];
 }
@@ -104,8 +110,8 @@ if (isset($_GET['use'], $_GET['tipo'])) {
   }
 }
 
-// Generar nueva llave
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+// Generar una llave completa (ruta antigua: ya con fotos)
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_POST['complete_id'])) {
   $cedula = preg_replace('/\D+/', '', body('cedula'));
   if ($cedula === '') { $cedula = '00000000000'; } // valor dummy mientras el campo está oculto
   $nombre = trim((string)body('nombre'));
@@ -121,17 +127,54 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($errorsUp) {
       $alert = ['danger', implode(' ', $errorsUp)];
     } else {
-      $stmt = $con->prepare("INSERT INTO llaves_qr (inquilino_id, cedula, nombre, apartamento, codigo, foto_cedula, foto_placa) VALUES (?,?,?,?,?,?,?)");
-      // bind_param con referencias explícitas
+      $stmt = $con->prepare("INSERT INTO llaves_qr (inquilino_id, cedula, nombre, apartamento, visitante, total_visitantes, minutos_estadia, codigo, foto_cedula, foto_placa, estado) VALUES (?,?,?,?,?,?,?,?,?,?,?)");
+      if (!$stmt) throw new Exception($con->error);
       $inqIdTmp = $inqId ?? 0;
       $cedTmp   = $cedula;
       $nomTmp   = ($nombre === '' ? null : $nombre);
       $aptTmp   = ($apto === '' ? null : $apto);
+      $visTmp   = null;
+      $totTmp   = 1;
+      $minTmp   = 60;
       $codTmp   = $codigo;
       $fotoCTmp = $fotoCed;
       $fotoPTmp = $fotoPla;
-      if ($stmt) {
-        $params = ['issssss', &$inqIdTmp, &$cedTmp, &$nomTmp, &$aptTmp, &$codTmp, &$fotoCTmp, &$fotoPTmp];
+      $estadoTmp= 'generada';
+      if ($stmt->bind_param('issssiisbbs', $inqIdTmp, $cedTmp, $nomTmp, $aptTmp, $visTmp, $totTmp, $minTmp, $codTmp, $fotoCTmp, $fotoPTmp, $estadoTmp) && $stmt->execute()) {
+        $alert = ['success','Llave generada. Escanea el QR o comparte el código.'];
+        $generated = ['codigo'=>$codigo,'cedula'=>$cedula,'nombre'=>$nombre,'apto'=>$apto];
+      } else {
+        $alert = ['danger','No se pudo crear la llave: '.$stmt->error];
+      }
+    }
+  }catch(Throwable $e){
+    $alert = ['danger','Error al crear la llave: '.$e->getMessage()];
+  }
+}
+
+// Completar una visita pendiente (subir fotos y generar código)
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['complete_id'])) {
+  $idComp = (int)$_POST['complete_id'];
+  $errA = []; $errB = [];
+  $fotoCed = procesar_foto_llave('foto_cedula', $errA);
+  $fotoPla = procesar_foto_llave('foto_placa', $errB);
+  $errorsUp = array_merge($errA,$errB);
+  if ($errorsUp) {
+    $alert = ['danger', implode(' ', $errorsUp)];
+  } else {
+    $codigo = substr(bin2hex(random_bytes(16)),0,24);
+    $stmt = $con->prepare("UPDATE llaves_qr SET codigo=?, foto_cedula=?, foto_placa=?, estado='generada', expira_despues_salida=DATE_ADD(NOW(), INTERVAL minutos_estadia MINUTE) WHERE id=?");
+    $codTmp = $codigo;
+    $fotoCTmp = $fotoCed;
+    $fotoPTmp = $fotoPla;
+    if ($stmt && $stmt->bind_param('sssi', $codTmp, $fotoCTmp, $fotoPTmp, $idComp) && $stmt->execute()) {
+      $alert = ['success','Llave completada y QR generado.'];
+      $generated = ['codigo'=>$codigo,'cedula'=>'','nombre'=>'','apto'=>''];
+    } else {
+      $alert = ['danger','No se pudo completar la llave: '.($stmt?$stmt->error:$con->error)];
+    }
+  }
+}
         if (call_user_func_array([$stmt,'bind_param'], $params) && $stmt->execute()) {
           $alert = ['success','Llave generada. Escanea el QR o comparte el código.'];
           $generated = ['codigo'=>$codigo,'cedula'=>$cedula,'nombre'=>$nombre,'apto'=>$apto];
@@ -233,14 +276,14 @@ render_header('Llaves digitales','keys');
     <table class="table table-hover align-middle" id="tabla">
       <thead class="table-light">
         <tr>
-          <th>Código</th><th>Cédula</th><th>Nombre</th><th>Apto</th><th>Estado</th><th>Entrada</th><th>Salida</th><th>Expira</th><th>Cédula img</th><th>Placa img</th><th class="text-center">Acciones</th>
+          <th>Código</th><th>Visitante</th><th>Residente</th><th>Apto</th><th>Estado</th><th>Entrada</th><th>Salida</th><th>Expira</th><th>Cédula img</th><th>Placa img</th><th class="text-center">Acciones</th>
         </tr>
       </thead>
       <tbody>
         <?php foreach($llaves as $l): ?>
           <tr>
-            <td><code><?= e($l['codigo']) ?></code></td>
-            <td><?= e(format_cedula_local($l['cedula'])) ?></td>
+            <td><?= $l['codigo'] ? '<code>'.e($l['codigo']).'</code>' : '<span class="text-muted">Pendiente</span>' ?></td>
+            <td><?= e($l['visitante'] ?? 'No indicado') ?><br><span class="text-muted small">Grupo: <?= (int)($l['total_visitantes'] ?? 1) ?> | Estadia: <?= (int)($l['minutos_estadia'] ?? 60) ?> min</span></td>
             <td><?= e($l['nombre']) ?></td>
             <td><?= e($l['apartamento']) ?></td>
             <td>
@@ -250,6 +293,7 @@ render_header('Llaves digitales','keys');
                 elseif($l['estado']==='entrada') $badge='info';
                 elseif($l['estado']==='salida') $badge='warning';
                 elseif($l['estado']==='expirada') $badge='dark';
+                elseif($l['estado']==='pendiente') $badge='secondary';
               ?>
               <span class="badge text-bg-<?= $badge ?> text-capitalize"><?= e($l['estado']) ?></span>
             </td>
@@ -263,6 +307,8 @@ render_header('Llaves digitales','keys');
                 $href = "data:$mime;base64,".base64_encode($l['foto_cedula']);
               ?>
                 <button type="button" class="btn btn-outline-secondary btn-sm view-img" data-img="<?= e($href) ?>" data-title="Cédula llave #<?= (int)$l['id'] ?>">Ver</button>
+              <?php elseif($l['estado']==='pendiente'): ?>
+                <span class="text-muted">Subir al completar</span>
               <?php else: ?><span class="text-muted">—</span><?php endif; ?>
             </td>
             <td>
@@ -272,11 +318,22 @@ render_header('Llaves digitales','keys');
                 $href = "data:$mime;base64,".base64_encode($l['foto_placa']);
               ?>
                 <button type="button" class="btn btn-outline-secondary btn-sm view-img" data-img="<?= e($href) ?>" data-title="Placa llave #<?= (int)$l['id'] ?>">Ver</button>
+              <?php elseif($l['estado']==='pendiente'): ?>
+                <span class="text-muted">Subir al completar</span>
               <?php else: ?><span class="text-muted">—</span><?php endif; ?>
             </td>
             <td class="text-center d-flex gap-1">
-              <a class="btn btn-sm btn-outline-primary" href="?use=<?= urlencode($l['codigo']) ?>&tipo=entrada">Entrada</a>
-              <a class="btn btn-sm btn-outline-success" href="?use=<?= urlencode($l['codigo']) ?>&tipo=salida">Salida</a>
+              <?php if($l['estado']==='pendiente'): ?>
+                <form class="d-flex gap-1 align-items-center" method="post" enctype="multipart/form-data">
+                  <input type="hidden" name="complete_id" value="<?= (int)$l['id'] ?>">
+                  <input type="file" name="foto_cedula" accept="image/*" class="form-control form-control-sm" required>
+                  <input type="file" name="foto_placa" accept="image/*" class="form-control form-control-sm" required>
+                  <button class="btn btn-sm btn-primary">Completar</button>
+                </form>
+              <?php else: ?>
+                <a class="btn btn-sm btn-outline-primary" href="?use=<?= urlencode($l['codigo']) ?>&tipo=entrada">Entrada</a>
+                <a class="btn btn-sm btn-outline-success" href="?use=<?= urlencode($l['codigo']) ?>&tipo=salida">Salida</a>
+              <?php endif; ?>
             </td>
           </tr>
         <?php endforeach; ?>
