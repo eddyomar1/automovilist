@@ -90,12 +90,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   if ($stmtIns && $stmtIns->bind_param('isii', $inqId, $visitante, $totalVis, $minStay) && $stmtIns->execute()) {
     // También crea un registro pendiente en llaves_qr con código temporal
     $codigoTmp = 'PEND-'.bin2hex(random_bytes(6));
-    $stmtL = $con->prepare("INSERT INTO llaves_qr (inquilino_id, cedula, nombre, apartamento, visitante, total_visitantes, minutos_estadia, codigo, estado) VALUES (?,?,?,?,?,?,?,?, 'pendiente')");
+    $stmtL = $con->prepare("INSERT INTO llaves_qr (inquilino_id, cedula, nombre, apartamento, visitante, total_visitantes, minutos_estadia, codigo, estado) VALUES (?,?,?,?,?,?,?, ?, 'pendiente')");
     $cedTmp = '00000000000';
     $nomTmp = $visitante;
     $aptTmp = $inquilino['apartamento'] ?? null;
     if ($stmtL) {
-      if (!$stmtL->bind_param('isssssii s', $inqId, $cedTmp, $nomTmp, $aptTmp, $visitante, $totalVis, $minStay, $codigoTmp) || !$stmtL->execute()) {
+      if (!$stmtL->bind_param('issssiis', $inqId, $cedTmp, $nomTmp, $aptTmp, $visitante, $totalVis, $minStay, $codigoTmp) || !$stmtL->execute()) {
         $errors[] = 'No se pudo crear la notificación pendiente: '.$stmtL->error;
       }
     } else {
