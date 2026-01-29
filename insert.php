@@ -24,6 +24,9 @@ $con->query("CREATE TABLE IF NOT EXISTS visitas_porteria (
   foto_placa LONGBLOB NULL,
   FOREIGN KEY (inquilino_id) REFERENCES inquilinos_porteria(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+// Asegura columnas si la tabla ya existía sin ellas
+@$con->query("ALTER TABLE visitas_porteria ADD COLUMN total_visitantes INT NOT NULL DEFAULT 1");
+@$con->query("ALTER TABLE visitas_porteria ADD COLUMN minutos_estadia INT NOT NULL DEFAULT 60");
 // Retira columna nota si existiera
 @$con->query("ALTER TABLE visitas_porteria DROP COLUMN nota");
 
@@ -57,7 +60,8 @@ function procesar_foto_visit(string $field, array &$errors): ?string{
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   $visitante = trim((string)($_POST['visitante'] ?? ''));
   $totalVis  = max(1, (int)($_POST['total_visitantes'] ?? 1));
-  $minStay   = max(10, (int)($_POST['minutos_estadia'] ?? 60));
+  $horasStay = max(1, (int)($_POST['horas_estadia'] ?? 1));
+  $minStay   = $horasStay * 60;
   // Solo notifica; fotos se subirán al completar la llave
   $stmtIns = $con->prepare("INSERT INTO visitas_porteria (inquilino_id, visitante, total_visitantes, minutos_estadia) VALUES (?, ?, ?, ?)");
   if ($stmtIns && $stmtIns->bind_param('isii', $inqId, $visitante, $totalVis, $minStay) && $stmtIns->execute()) {
@@ -109,8 +113,8 @@ render_header('Registrar visita', 'new');
           <input type="number" name="total_visitantes" class="form-control" min="1" value="1" required>
         </div>
         <div class="col-md-3">
-          <label class="form-label">Tiempo de estadía (min) *</label>
-          <input type="number" name="minutos_estadia" class="form-control" min="10" step="5" value="60" required>
+          <label class="form-label">Tiempo de estadía (horas) *</label>
+          <input type="number" name="horas_estadia" class="form-control" min="1" step="1" value="1" required>
         </div>
         <div class="col-12 d-flex justify-content-end gap-2">
           <button class="btn btn-primary">Notificar visita</button>
