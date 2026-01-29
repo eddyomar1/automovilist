@@ -117,7 +117,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $alert = ['success','Llave generada. Escanea el QR o comparte el código.'];
         $generated = ['codigo'=>$codigo,'cedula'=>$cedula,'nombre'=>$nombre,'apto'=>$apto];
       } else {
-      $alert = ['danger','No se pudo crear la llave.'];
+        $alert = ['danger','No se pudo crear la llave.'];
+      }
     }
   }
 }
@@ -231,19 +232,19 @@ render_header('Llaves digitales','keys');
               <?php if(!empty($l['foto_cedula'])):
                 $mime='image/jpeg';
                 if (function_exists('finfo_open')) { $fi=finfo_open(FILEINFO_MIME_TYPE); $det=finfo_buffer($fi,$l['foto_cedula']); if($det) $mime=$det; finfo_close($fi); }
-                $href=\"data:$mime;base64,\".base64_encode($l['foto_cedula']);
+                $href = "data:$mime;base64,".base64_encode($l['foto_cedula']);
               ?>
-                <button type=\"button\" class=\"btn btn-outline-secondary btn-sm view-img\" data-img=\"<?= e($href) ?>\" data-title=\"Cédula llave #<?= (int)$l['id'] ?>\">Ver</button>
-              <?php else: ?><span class=\"text-muted\">—</span><?php endif; ?>
+                <button type="button" class="btn btn-outline-secondary btn-sm view-img" data-img="<?= e($href) ?>" data-title="Cédula llave #<?= (int)$l['id'] ?>">Ver</button>
+              <?php else: ?><span class="text-muted">—</span><?php endif; ?>
             </td>
             <td>
               <?php if(!empty($l['foto_placa'])):
                 $mime='image/jpeg';
                 if (function_exists('finfo_open')) { $fi=finfo_open(FILEINFO_MIME_TYPE); $det=finfo_buffer($fi,$l['foto_placa']); if($det) $mime=$det; finfo_close($fi); }
-                $href=\"data:$mime;base64,\".base64_encode($l['foto_placa']);
+                $href = "data:$mime;base64,".base64_encode($l['foto_placa']);
               ?>
-                <button type=\"button\" class=\"btn btn-outline-secondary btn-sm view-img\" data-img=\"<?= e($href) ?>\" data-title=\"Placa llave #<?= (int)$l['id'] ?>\">Ver</button>
-              <?php else: ?><span class=\"text-muted\">—</span><?php endif; ?>
+                <button type="button" class="btn btn-outline-secondary btn-sm view-img" data-img="<?= e($href) ?>" data-title="Placa llave #<?= (int)$l['id'] ?>">Ver</button>
+              <?php else: ?><span class="text-muted">—</span><?php endif; ?>
             </td>
             <td class="text-center d-flex gap-1">
               <a class="btn btn-sm btn-outline-primary" href="?use=<?= urlencode($l['codigo']) ?>&tipo=entrada">Entrada</a>
