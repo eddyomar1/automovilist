@@ -18,10 +18,15 @@ $con->query("CREATE TABLE IF NOT EXISTS llaves_qr (
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   INDEX(inquilino_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
-// Asegura columnas si la tabla ya existía
-@$con->query("ALTER TABLE llaves_qr ADD COLUMN inquilino_id INT NULL");
-@$con->query("ALTER TABLE llaves_qr ADD COLUMN foto_cedula LONGBLOB NULL");
-@$con->query("ALTER TABLE llaves_qr ADD COLUMN foto_placa LONGBLOB NULL");
+// Asegura columnas si la tabla ya existía sin ellas
+function ensure_column(mysqli $c, string $table, string $col, string $ddl){
+  $chk = $c->query("SHOW COLUMNS FROM {$table} LIKE '{$col}'");
+  if ($chk && $chk->fetch_assoc()) return;
+  $c->query("ALTER TABLE {$table} ADD COLUMN {$ddl}");
+}
+ensure_column($con, 'llaves_qr', 'inquilino_id', 'INT NULL');
+ensure_column($con, 'llaves_qr', 'foto_cedula', 'LONGBLOB NULL');
+ensure_column($con, 'llaves_qr', 'foto_placa', 'LONGBLOB NULL');
 
 // Expira llaves que ya pasaron 10 min después de salida
 $con->query("UPDATE llaves_qr SET estado='expirada' WHERE estado='salida' AND expira_despues_salida IS NOT NULL AND expira_despues_salida < NOW()");
