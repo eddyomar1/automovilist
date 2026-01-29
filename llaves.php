@@ -308,14 +308,21 @@ render_header('Llaves digitales','keys');
                 <span class="text-muted">Subir al completar</span>
               <?php else: ?><span class="text-muted">—</span><?php endif; ?>
             </td>
-            <td class="text-center d-flex gap-1">
+            <td class="text-center">
               <?php if($l['estado']==='pendiente'): ?>
-                <form class="d-flex gap-1 align-items-center" method="post" enctype="multipart/form-data">
-                  <input type="hidden" name="complete_id" value="<?= (int)$l['id'] ?>">
-                  <input type="file" name="foto_cedula" accept="image/*" class="form-control form-control-sm" required>
-                  <input type="file" name="foto_placa" accept="image/*" class="form-control form-control-sm" required>
-                  <button class="btn btn-sm btn-primary">Completar</button>
-                </form>
+                <button class="btn btn-sm btn-primary" type="button" data-bs-toggle="collapse" data-bs-target="#complete-<?= (int)$l['id'] ?>">
+                  Completar
+                </button>
+                <div class="collapse mt-2 text-start" id="complete-<?= (int)$l['id'] ?>">
+                  <form class="d-flex flex-column gap-2" method="post" enctype="multipart/form-data">
+                    <input type="hidden" name="complete_id" value="<?= (int)$l['id'] ?>">
+                    <label class="form-label mb-0 small">Foto cédula</label>
+                    <input type="file" name="foto_cedula" accept="image/*" class="form-control form-control-sm" required>
+                    <label class="form-label mb-0 small">Foto placa</label>
+                    <input type="file" name="foto_placa" accept="image/*" class="form-control form-control-sm" required>
+                    <button class="btn btn-sm btn-success">Guardar y generar QR</button>
+                  </form>
+                </div>
               <?php else: ?>
                 <a class="btn btn-sm btn-outline-primary" href="?use=<?= urlencode($l['codigo']) ?>&tipo=entrada">Entrada</a>
                 <a class="btn btn-sm btn-outline-success" href="?use=<?= urlencode($l['codigo']) ?>&tipo=salida">Salida</a>
