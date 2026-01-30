@@ -232,8 +232,12 @@ render_header('Llaves digitales','keys');
       <tbody>
         <?php foreach($llaves as $l): ?>
           <tr class="<?= $l['estado']==='pendiente' ? 'table-warning row-pendiente' : '' ?>" data-pend-id="<?= (int)$l['id'] ?>">
+            <?php
+              $faltanFotos = empty($l['foto_cedula']) || empty($l['foto_placa']);
+              $pendiente   = ($l['estado']==='pendiente') || $faltanFotos;
+            ?>
             <td>
-              <?php if($l['estado']==='pendiente'): ?>
+              <?php if($pendiente): ?>
                 <span class="badge text-bg-warning me-2">Pendiente</span>
                 <code class="text-muted"><?= e($l['codigo'] ?: '—') ?></code>
               <?php else: ?>
@@ -246,13 +250,14 @@ render_header('Llaves digitales','keys');
             <td>
               <?php
                 $badge='secondary';
-                if ($l['estado']==='pendiente') $badge='warning';
-                elseif ($l['estado']==='generada') $badge='primary';
-                elseif($l['estado']==='entrada') $badge='info';
-                elseif($l['estado']==='salida') $badge='warning';
-                elseif($l['estado']==='expirada') $badge='dark';
+                $estadoLbl = $pendiente ? 'pendiente' : $l['estado'];
+                if ($estadoLbl==='pendiente') $badge='warning';
+                elseif ($estadoLbl==='generada') $badge='primary';
+                elseif($estadoLbl==='entrada') $badge='info';
+                elseif($estadoLbl==='salida') $badge='warning';
+                elseif($estadoLbl==='expirada') $badge='dark';
               ?>
-              <span class="badge text-bg-<?= $badge ?> text-capitalize"><?= e($l['estado']) ?></span>
+              <span class="badge text-bg-<?= $badge ?> text-capitalize"><?= e($estadoLbl) ?></span>
             </td>
             <td><?= e($l['usado_entrada'] ?? '—') ?></td>
             <td><?= e($l['usado_salida'] ?? '—') ?></td>
@@ -280,7 +285,7 @@ render_header('Llaves digitales','keys');
               <?php else: ?><span class="text-muted">—</span><?php endif; ?>
             </td>
             <td class="text-center">
-              <?php if($l['estado']==='pendiente'): ?>
+              <?php if($pendiente): ?>
                 <button type="button" class="btn btn-sm btn-primary entrada-pendiente-btn" data-id="<?= (int)$l['id'] ?>">Activación</button>
               <?php else: ?>
                 <button type="button" class="btn btn-sm btn-outline-secondary ver-detalle-btn" data-id="<?= (int)$l['id'] ?>">Ver detalles</button>
