@@ -232,7 +232,14 @@ render_header('Llaves digitales','keys');
       <tbody>
         <?php foreach($llaves as $l): ?>
           <tr class="<?= $l['estado']==='pendiente' ? 'table-warning row-pendiente' : '' ?>" data-pend-id="<?= (int)$l['id'] ?>">
-            <td><?= $l['codigo'] ? '<code>'.e($l['codigo']).'</code>' : '<span class="text-muted">Pendiente</span>' ?></td>
+            <td>
+              <?php if($l['estado']==='pendiente'): ?>
+                <span class="badge text-bg-warning me-2">Pendiente</span>
+                <code class="text-muted"><?= e($l['codigo'] ?: '—') ?></code>
+              <?php else: ?>
+                <?= $l['codigo'] ? '<code>'.e($l['codigo']).'</code>' : '<span class="text-muted">—</span>' ?>
+              <?php endif; ?>
+            </td>
             <td><?= e($l['visitante'] ?? 'No indicado') ?><br><span class="text-muted small">Grupo: <?= (int)($l['total_visitantes'] ?? 1) ?> | Estadia: <?= (int)($l['minutos_estadia'] ?? 60) ?> min</span></td>
             <td><?= e($l['nombre']) ?></td>
             <td><?= e($l['apartamento']) ?></td>
