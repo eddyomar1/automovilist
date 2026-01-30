@@ -273,12 +273,7 @@ render_header('Llaves digitales','keys');
               <?php else: ?><span class="text-muted">—</span><?php endif; ?>
             </td>
             <td class="text-center">
-              <?php if($l['estado']==='pendiente'): ?>
-                <button type="button" class="btn btn-sm btn-primary entrada-pendiente-btn" data-id="<?= (int)$l['id'] ?>">Entrada / generar</button>
-              <?php else: ?>
-                <a class="btn btn-sm btn-outline-primary" href="?use=<?= urlencode($l['codigo']) ?>&tipo=entrada">Entrada</a>
-                <a class="btn btn-sm btn-outline-success" href="?use=<?= urlencode($l['codigo']) ?>&tipo=salida">Salida</a>
-              <?php endif; ?>
+              <button type="button" class="btn btn-sm btn-primary entrada-pendiente-btn" data-id="<?= (int)$l['id'] ?>">Activación</button>
             </td>
           </tr>
         <?php endforeach; ?>
