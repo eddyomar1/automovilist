@@ -239,11 +239,11 @@ render_header('Llaves digitales','keys');
             <td>
               <?php
                 $badge='secondary';
-                if ($l['estado']==='generada') $badge='primary';
+                if ($l['estado']==='pendiente') $badge='warning';
+                elseif ($l['estado']==='generada') $badge='primary';
                 elseif($l['estado']==='entrada') $badge='info';
                 elseif($l['estado']==='salida') $badge='warning';
                 elseif($l['estado']==='expirada') $badge='dark';
-                elseif($l['estado']==='pendiente') $badge='secondary';
               ?>
               <span class="badge text-bg-<?= $badge ?> text-capitalize"><?= e($l['estado']) ?></span>
             </td>
