@@ -273,7 +273,11 @@ render_header('Llaves digitales','keys');
               <?php else: ?><span class="text-muted">—</span><?php endif; ?>
             </td>
             <td class="text-center">
-              <button type="button" class="btn btn-sm btn-primary entrada-pendiente-btn" data-id="<?= (int)$l['id'] ?>">Activación</button>
+              <?php if($l['estado']==='pendiente'): ?>
+                <button type="button" class="btn btn-sm btn-primary entrada-pendiente-btn" data-id="<?= (int)$l['id'] ?>">Activación</button>
+              <?php else: ?>
+                <button type="button" class="btn btn-sm btn-outline-secondary ver-detalle-btn" data-id="<?= (int)$l['id'] ?>">Ver detalles</button>
+              <?php endif; ?>
             </td>
           </tr>
         <?php endforeach; ?>
@@ -338,9 +342,17 @@ function abrirEntradaPendiente(id){
   m.show();
 }
 
+// Modal para ver detalles (simple)
+function abrirDetalle(id){
+  const url = '?detalle=' + encodeURIComponent(id);
+  window.location = url; // reutiliza la página; se podría hacer modal dinámico si se prefiere
+}
+
 document.addEventListener('click', function(e){
   const btn = e.target.closest('.entrada-pendiente-btn');
   if(btn){ abrirEntradaPendiente(btn.getAttribute('data-id')); }
+  const ver = e.target.closest('.ver-detalle-btn');
+  if(ver){ abrirDetalle(ver.getAttribute('data-id')); }
 });
 
 // Modal de imágenes existentes
