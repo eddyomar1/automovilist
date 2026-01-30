@@ -288,7 +288,11 @@ render_header('Llaves digitales','keys');
               <?php if($pendiente): ?>
                 <button type="button" class="btn btn-sm btn-primary entrada-pendiente-btn" data-id="<?= (int)$l['id'] ?>">Activación</button>
               <?php else: ?>
-                <button type="button" class="btn btn-sm btn-outline-secondary ver-detalle-btn" data-id="<?= (int)$l['id'] ?>">Ver detalles</button>
+                <button type="button" class="btn btn-sm btn-outline-secondary ver-detalle-btn"
+                        data-cedula-img="<?= !empty($l['foto_cedula']) ? 'data:'.(function_exists('finfo_buffer') && ($fi=finfo_open(FILEINFO_MIME_TYPE)) && ($m=finfo_buffer($fi,$l['foto_cedula'])) ? finfo_close($fi) || $m : 'image/jpeg').';base64,'.base64_encode($l['foto_cedula']) : '' ?>"
+                        data-placa-img="<?= !empty($l['foto_placa']) ? 'data:'.(function_exists('finfo_buffer') && ($fi2=finfo_open(FILEINFO_MIME_TYPE)) && ($m2=finfo_buffer($fi2,$l['foto_placa'])) ? finfo_close($fi2) || $m2 : 'image/jpeg').';base64,'.base64_encode($l['foto_placa']) : '' ?>">
+                  Ver detalles
+                </button>
               <?php endif; ?>
             </td>
           </tr>
@@ -364,7 +368,33 @@ document.addEventListener('click', function(e){
   const btn = e.target.closest('.entrada-pendiente-btn');
   if(btn){ abrirEntradaPendiente(btn.getAttribute('data-id')); }
   const ver = e.target.closest('.ver-detalle-btn');
-  if(ver){ abrirDetalle(ver.getAttribute('data-id')); }
+  if(ver){
+    const ced = ver.getAttribute('data-cedula-img');
+    const pla = ver.getAttribute('data-placa-img');
+    let html = '<div class="row g-3">';
+    html += '<div class="col-12 col-md-6 text-center">'+ (ced ? `<img src="${ced}" class="img-fluid rounded border">` : '<span class="text-muted">Sin cédula</span>') +'</div>';
+    html += '<div class="col-12 col-md-6 text-center">'+ (pla ? `<img src="${pla}" class="img-fluid rounded border">` : '<span class="text-muted">Sin placa</span>') +'</div>';
+    html += '</div>';
+    let modal = document.getElementById('detalleModal');
+    if(!modal){
+      const tpl = `
+      <div class="modal fade" id="detalleModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title">Detalles de la llave</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="detalleBody"></div>
+          </div>
+        </div>
+      </div>`;
+      document.body.insertAdjacentHTML('beforeend', tpl);
+      modal = document.getElementById('detalleModal');
+    }
+    document.getElementById('detalleBody').innerHTML = html;
+    new bootstrap.Modal(modal).show();
+  }
 });
 
 // Modal de imágenes existentes
